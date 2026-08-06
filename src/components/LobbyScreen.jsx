@@ -36,6 +36,7 @@ export const LobbyScreen = ({
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [copied, setCopied] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isGameModeDropdownOpen, setIsGameModeDropdownOpen] = useState(false);
   const [customWordsText, setCustomWordsText] = useState('');
 
   // Auto-detect room parameter from URL share link
@@ -88,6 +89,12 @@ export const LobbyScreen = ({
     setIsCategoryDropdownOpen(false);
   };
 
+  const handleGameModeSelect = (modeId) => {
+    soundEngine.playClick();
+    onUpdateSettings({ gameMode: modeId });
+    setIsGameModeDropdownOpen(false);
+  };
+
   const currentCategoryObj = CATEGORIES.find(c => c.id === roomState.category) || {
     id: 'food',
     name: roomState.category === 'custom' ? 'Özel Tema' : 'Yemekler & İçecekler',
@@ -137,7 +144,10 @@ export const LobbyScreen = ({
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  onClick={() => {
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+                    setIsGameModeDropdownOpen(false);
+                  }}
                   className="w-full p-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 flex items-center justify-between transition-all cursor-pointer shadow-md"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -156,7 +166,7 @@ export const LobbyScreen = ({
                   )}
                 </button>
 
-                {/* Expanded Category Selector Options */}
+                {/* Expanded Category Options */}
                 {isCategoryDropdownOpen && (
                   <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 shadow-2xl animate-in fade-in slide-in-from-top-2">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -225,68 +235,91 @@ export const LobbyScreen = ({
             )}
           </div>
 
-          {/* Casus Sayısı & Oyun Modu */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            {/* Custom Editable Casus Sayısı Input */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-zinc-300">
-                Casus Sayısı
-              </label>
+          {/* Collapsible Game Mode Selection Dropdown Bar */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-zinc-300">Oyun Modu</label>
 
-              {isHost ? (
-                <input
-                  type="number"
-                  min={1}
-                  max={Math.max(1, roomState.players.length - 1)}
-                  value={spyCount}
-                  onChange={(e) => {
-                    const val = Math.max(1, parseInt(e.target.value, 10) || 1);
-                    onUpdateSettings({ spyCount: val });
+            {isHost ? (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsGameModeDropdownOpen(!isGameModeDropdownOpen);
+                    setIsCategoryDropdownOpen(false);
                   }}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
-                />
-              ) : (
-                <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
-                  {spyCount} Casus
-                </div>
-              )}
-            </div>
+                  className="w-full p-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 flex items-center justify-between transition-all cursor-pointer shadow-md"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="font-black text-sm text-white truncate">
+                      {currentModeObj.name}
+                    </span>
+                    <span className="text-xs text-zinc-500 font-normal hidden sm:inline">
+                      (Değiştirmek için tıklayın)
+                    </span>
+                  </div>
+                  {isGameModeDropdownOpen ? (
+                    <ChevronUp className="w-4 h-4 text-zinc-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-zinc-400" />
+                  )}
+                </button>
 
-            {/* Oyun Modu */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-zinc-300">
-                Oyun Modu
-              </label>
+                {/* Expanded Game Mode Options */}
+                {isGameModeDropdownOpen && (
+                  <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 shadow-2xl animate-in fade-in slide-in-from-top-2">
+                    {GAME_MODES.map((m) => {
+                      const isSelected = (roomState.gameMode || 'classic') === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => handleGameModeSelect(m.id)}
+                          className={`w-full p-3 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? 'bg-white text-zinc-950 border-white font-black shadow-md'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700'
+                          }`}
+                        >
+                          <div className="font-black text-xs">{m.name}</div>
+                          <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-zinc-700 font-semibold' : 'text-zinc-500'}`}>
+                            {m.desc}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
+                {currentModeObj.name}
+              </div>
+            )}
+          </div>
 
-              {isHost ? (
-                <div className="flex items-center gap-2">
-                  {GAME_MODES.map(m => {
-                    const isSelected = (roomState.gameMode || 'classic') === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          soundEngine.playClick();
-                          onUpdateSettings({ gameMode: m.id });
-                        }}
-                        className={`flex-1 py-2.5 rounded-xl border text-[11px] font-black transition-all truncate px-1 ${
-                          isSelected
-                            ? 'bg-white text-zinc-950 border-white shadow-md'
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        {m.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
-                  {currentModeObj.name}
-                </div>
-              )}
-            </div>
+          {/* Casus Sayısı Input */}
+          <div className="space-y-1.5 pt-1 border-t border-zinc-850">
+            <label className="block text-xs font-bold text-zinc-300">
+              Casus Sayısı
+            </label>
+
+            {isHost ? (
+              <input
+                type="number"
+                min={1}
+                max={Math.max(1, roomState.players.length - 1)}
+                value={spyCount}
+                onChange={(e) => {
+                  const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                  onUpdateSettings({ spyCount: val });
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
+              />
+            ) : (
+              <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
+                {spyCount} Casus
+              </div>
+            )}
           </div>
         </div>
 
