@@ -155,9 +155,6 @@ export const LobbyScreen = ({
                     <span className="font-black text-sm text-white truncate">
                       {currentCategoryObj.name}
                     </span>
-                    <span className="text-xs text-zinc-500 font-normal hidden sm:inline">
-                      (Değiştirmek için tıklayın)
-                    </span>
                   </div>
                   {isCategoryDropdownOpen ? (
                     <ChevronUp className="w-4 h-4 text-zinc-400" />
@@ -252,9 +249,6 @@ export const LobbyScreen = ({
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="font-black text-sm text-white truncate">
                       {currentModeObj.name}
-                    </span>
-                    <span className="text-xs text-zinc-500 font-normal hidden sm:inline">
-                      (Değiştirmek için tıklayın)
                     </span>
                   </div>
                   {isGameModeDropdownOpen ? (
