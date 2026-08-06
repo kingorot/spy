@@ -138,12 +138,16 @@ export function App() {
         )}
       </main>
 
-      {/* Stacked Bottom-Left Panels (İPUÇLARI on top of GEÇMİŞ, zero overlap!) */}
+      {/* Stacked Bottom-Left Panels (İPUÇLARI with fixed player ordering on top of GEÇMİŞ) */}
       {roomState.roomCode && (
         <div className="fixed bottom-4 left-4 z-30 flex flex-col gap-2 items-start max-w-[calc(100vw-2rem)] sm:max-w-sm pointer-events-none">
           {roomState.phase !== 'LOBBY' && (
             <div className="pointer-events-auto w-full">
-              <ClueTable clueLogs={roomState.clueLogs} players={roomState.players} />
+              <ClueTable
+                clueLogs={roomState.clueLogs}
+                players={roomState.players}
+                turnOrder={roomState.turnOrder}
+              />
             </div>
           )}
           <div className="pointer-events-auto w-full">

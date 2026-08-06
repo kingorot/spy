@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, User } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 
-export const ClueTable = ({ clueLogs = [], players = [] }) => {
+export const ClueTable = ({ clueLogs = [], players = [], turnOrder = [] }) => {
   const [selectedRound, setSelectedRound] = useState(1);
 
   // Parse clueLogs into round-based clue maps
-  // Format: { 1: { "Kartal-53": "sa", "Şahin-61": "büyük" }, 2: { ... } }
+  // Format: { 1: { "senderId/Name": "clueText" } }
   const roundCluesMap = {};
   let currentRoundCounter = 1;
 
@@ -20,7 +20,9 @@ export const ClueTable = ({ clueLogs = [], players = [] }) => {
       if (!roundCluesMap[currentRoundCounter]) {
         roundCluesMap[currentRoundCounter] = {};
       }
-      roundCluesMap[currentRoundCounter][log.senderName] = log.text;
+      // Store by senderId if available, fallback to senderName
+      const key = log.senderId || log.senderName;
+      roundCluesMap[currentRoundCounter][key] = log.text;
     }
   });
 
@@ -37,7 +39,11 @@ export const ClueTable = ({ clueLogs = [], players = [] }) => {
   if (availableRounds.length === 0) return null;
 
   const currentRoundData = roundCluesMap[selectedRound] || {};
-  const roundPlayerEntries = Object.entries(currentRoundData);
+
+  // Preserve FIXED player ordering using turnOrder or players list so order NEVER changes between tabs!
+  const orderedPlayers = (turnOrder && turnOrder.length > 0)
+    ? turnOrder.map(pid => players.find(p => p.id === pid)).filter(Boolean)
+    : players;
 
   return (
     <div className="glass-panel p-3 rounded-2xl border border-zinc-800 shadow-2xl space-y-2 max-h-64 overflow-y-auto w-full">
@@ -72,29 +78,28 @@ export const ClueTable = ({ clueLogs = [], players = [] }) => {
         </div>
       </div>
 
-      {/* Clues List for Selected Round */}
+      {/* Clues List for Selected Round (Fixed Player Order) */}
       <div className="space-y-1.5">
-        {roundPlayerEntries.length === 0 ? (
-          <p className="text-[11px] text-zinc-500 text-center py-2">
-            Bu turda henüz ipucu verilmedi.
-          </p>
-        ) : (
-          roundPlayerEntries.map(([senderName, clueText], idx) => (
+        {orderedPlayers.map((player) => {
+          const clueText = currentRoundData[player.id] || currentRoundData[player.name];
+          if (!clueText) return null; // Only render if clue was given in this round
+
+          return (
             <div
-              key={idx}
+              key={player.id}
               className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between text-xs gap-2"
             >
               <div className="flex items-center gap-1 text-xs text-zinc-300 font-bold truncate">
                 <User className="w-3 h-3 text-zinc-400 flex-shrink-0" />
-                <span className="truncate">{senderName}:</span>
+                <span className="truncate">{player.name}:</span>
               </div>
 
               <span className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-700 text-zinc-100 font-black text-xs whitespace-nowrap">
                 "{clueText}"
               </span>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
     </div>
   );
