@@ -261,7 +261,7 @@ io.on('connection', (socket) => {
       {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         senderName: 'Sistem',
-        text: `1. Tur Başladı. 20 Kelime Matris Oluşturuldu.`
+        text: `${room.roundNumber}. Tur Başladı.`
       }
     ];
     room.votes = {};
