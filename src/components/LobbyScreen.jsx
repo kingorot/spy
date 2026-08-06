@@ -40,8 +40,8 @@ export const LobbyScreen = ({
   // Local synced settings for instant responsiveness
   const [selectedCategory, setSelectedCategory] = useState(roomState.category || 'food');
   const [selectedGameMode, setSelectedGameMode] = useState(roomState.gameMode || 'classic');
-  const [selectedSpyCount, setSelectedSpyCount] = useState(roomState.spyCount || 1);
-  const [selectedTurnDuration, setSelectedTurnDuration] = useState(roomState.turnDuration || 30);
+  const [selectedSpyCount, setSelectedSpyCount] = useState(roomState.spyCount !== undefined ? roomState.spyCount : 1);
+  const [selectedTurnDuration, setSelectedTurnDuration] = useState(roomState.turnDuration !== undefined ? roomState.turnDuration : 30);
 
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isGameModeDropdownOpen, setIsGameModeDropdownOpen] = useState(false);
@@ -51,8 +51,8 @@ export const LobbyScreen = ({
   useEffect(() => {
     if (roomState.category) setSelectedCategory(roomState.category);
     if (roomState.gameMode) setSelectedGameMode(roomState.gameMode);
-    if (roomState.spyCount) setSelectedSpyCount(roomState.spyCount);
-    if (roomState.turnDuration) setSelectedTurnDuration(roomState.turnDuration);
+    if (roomState.spyCount !== undefined) setSelectedSpyCount(roomState.spyCount);
+    if (roomState.turnDuration !== undefined) setSelectedTurnDuration(roomState.turnDuration);
   }, [roomState.category, roomState.gameMode, roomState.spyCount, roomState.turnDuration]);
 
   // Auto-detect room parameter from URL share link
@@ -106,14 +106,19 @@ export const LobbyScreen = ({
 
     let nextSpyCount = selectedSpyCount;
     if (modeId === 'double') {
-      nextSpyCount = Math.max(2, selectedSpyCount);
+      nextSpyCount = Math.max(2, Number(selectedSpyCount) || 2);
       setSelectedSpyCount(nextSpyCount);
     }
     onUpdateSettings({ gameMode: modeId, spyCount: nextSpyCount });
   };
 
   const handleSpyCountChange = (val) => {
-    let cnt = Math.max(1, parseInt(val, 10) || 1);
+    if (val === '') {
+      setSelectedSpyCount('');
+      return;
+    }
+    let cnt = parseInt(val, 10);
+    if (isNaN(cnt)) cnt = 0;
     if (selectedGameMode === 'double') {
       cnt = Math.max(2, cnt);
     }
@@ -122,7 +127,13 @@ export const LobbyScreen = ({
   };
 
   const handleTurnDurationChange = (val) => {
-    const dur = Math.max(5, parseInt(val, 10) || 30);
+    if (val === '') {
+      setSelectedTurnDuration('');
+      return;
+    }
+    let dur = parseInt(val, 10);
+    if (isNaN(dur)) dur = 0;
+    dur = Math.max(0, dur);
     setSelectedTurnDuration(dur);
     onUpdateSettings({ turnDuration: dur });
   };
@@ -311,10 +322,11 @@ export const LobbyScreen = ({
               {isHost ? (
                 <input
                   type="number"
-                  min={5}
+                  min={0}
                   max={300}
                   value={selectedTurnDuration}
                   onChange={(e) => handleTurnDurationChange(e.target.value)}
+                  placeholder="0"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
                 />
               ) : (
@@ -338,6 +350,7 @@ export const LobbyScreen = ({
                 max={Math.max(1, roomState.players.length - 1)}
                 value={selectedSpyCount}
                 onChange={(e) => handleSpyCountChange(e.target.value)}
+                placeholder="1"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
               />
             ) : (
