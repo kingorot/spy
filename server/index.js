@@ -47,13 +47,24 @@ function addLogMessage(room, text) {
 }
 
 function broadcastState(roomCode) {
-  const room = rooms.get(roomCode);
+  const code = (roomCode || '').toUpperCase().trim();
+  const room = rooms.get(code);
   if (!room) return;
-  io.to(roomCode).emit('STATE_UPDATE', room);
+  io.to(code).emit('STATE_UPDATE', room);
+}
+
+function getRoomAndEnsureSocket(socket, roomCode) {
+  const code = (roomCode || '').toUpperCase().trim();
+  if (!code) return null;
+  const room = rooms.get(code);
+  if (!room) return null;
+  socket.join(code);
+  return room;
 }
 
 function handleClueSubmit(roomCode, senderId, clueText) {
-  const room = rooms.get(roomCode);
+  const code = (roomCode || '').toUpperCase().trim();
+  const room = rooms.get(code);
   if (!room) return;
 
   const player = room.players.find(p => p.id === senderId);
@@ -68,17 +79,18 @@ function handleClueSubmit(roomCode, senderId, clueText) {
 
     if (room.currentTurnIndex < room.turnOrder.length - 1) {
       room.currentTurnIndex += 1;
-      broadcastState(roomCode);
+      broadcastState(code);
     } else {
       room.phase = 'VOTING_PHASE';
       addLogMessage(room, `${room.roundNumber}. Tur Tamamlandı. Oylama başladı.`);
-      broadcastState(roomCode);
+      broadcastState(code);
     }
   }
 }
 
 function handleCastVote(roomCode, voterId, targetId) {
-  const room = rooms.get(roomCode);
+  const code = (roomCode || '').toUpperCase().trim();
+  const room = rooms.get(code);
   if (!room) return;
 
   const voter = room.players.find(p => p.id === voterId);
@@ -105,14 +117,15 @@ function handleCastVote(roomCode, voterId, targetId) {
   }
 
   if (Object.keys(room.votes).length >= room.players.length) {
-    evaluateVotes(roomCode);
+    evaluateVotes(code);
   } else {
-    broadcastState(roomCode);
+    broadcastState(code);
   }
 }
 
 function evaluateVotes(roomCode) {
-  const room = rooms.get(roomCode);
+  const code = (roomCode || '').toUpperCase().trim();
+  const room = rooms.get(code);
   if (!room) return;
 
   const voteCounts = {};
@@ -144,7 +157,7 @@ function evaluateVotes(roomCode) {
     room.voteLogs = [];
     room.phase = 'CLUE_PHASE';
 
-    broadcastState(roomCode);
+    broadcastState(code);
     return;
   }
 
@@ -161,11 +174,12 @@ function evaluateVotes(roomCode) {
     room.phase = 'GAME_OVER';
   }
 
-  broadcastState(roomCode);
+  broadcastState(code);
 }
 
 function handleSpyGuessSubmit(roomCode, wordGuess) {
-  const room = rooms.get(roomCode);
+  const code = (roomCode || '').toUpperCase().trim();
+  const room = rooms.get(code);
   if (!room) return;
 
   room.spyGuess = wordGuess;
@@ -180,7 +194,7 @@ function handleSpyGuessSubmit(roomCode, wordGuess) {
   }
 
   room.phase = 'GAME_OVER';
-  broadcastState(roomCode);
+  broadcastState(code);
 }
 
 io.on('connection', (socket) => {
@@ -251,8 +265,7 @@ io.on('connection', (socket) => {
   // 3. UPDATE SETTINGS (In Lobby)
   socket.on('UPDATE_SETTINGS', (data) => {
     const roomCode = data.roomCode || data.code;
-    const code = (roomCode || '').toUpperCase().trim();
-    const room = rooms.get(code);
+    const room = getRoomAndEnsureSocket(socket, roomCode);
     if (!room) return;
 
     if (data.category !== undefined && data.category !== null) {
@@ -268,13 +281,12 @@ io.on('connection', (socket) => {
       room.gameMode = data.gameMode;
     }
 
-    broadcastState(code);
+    broadcastState(room.roomCode);
   });
 
   // 4. START GAME
   socket.on('START_GAME', ({ roomCode }) => {
-    const code = (roomCode || '').toUpperCase().trim();
-    const room = rooms.get(code);
+    const room = getRoomAndEnsureSocket(socket, roomCode);
     if (!room) return;
 
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
@@ -306,13 +318,12 @@ io.on('connection', (socket) => {
     room.spyGuess = null;
     room.winner = null;
 
-    broadcastState(code);
+    broadcastState(room.roomCode);
   });
 
   // 5. RETURN TO LOBBY
   socket.on('RETURN_TO_LOBBY', ({ roomCode }) => {
-    const code = (roomCode || '').toUpperCase().trim();
-    const room = rooms.get(code);
+    const room = getRoomAndEnsureSocket(socket, roomCode);
     if (!room) return;
 
     const cleanPlayers = room.players.map(p => ({
@@ -323,7 +334,7 @@ io.on('connection', (socket) => {
     }));
 
     const freshLobbyState = {
-      roomCode: code,
+      roomCode: room.roomCode,
       hostId: room.hostId,
       players: cleanPlayers,
       phase: 'LOBBY',
@@ -351,26 +362,32 @@ io.on('connection', (socket) => {
       winner: null
     };
 
-    rooms.set(code, freshLobbyState);
-    io.to(code).emit('STATE_UPDATE', freshLobbyState);
+    rooms.set(room.roomCode, freshLobbyState);
+    broadcastState(room.roomCode);
   });
 
   // 6. SUBMIT CLUE
   socket.on('SUBMIT_CLUE', ({ roomCode, clueText }) => {
-    const code = (roomCode || '').toUpperCase().trim();
-    handleClueSubmit(code, socket.id, clueText);
+    const room = getRoomAndEnsureSocket(socket, roomCode);
+    if (room) {
+      handleClueSubmit(room.roomCode, socket.id, clueText);
+    }
   });
 
   // 7. CAST VOTE
   socket.on('CAST_VOTE', ({ roomCode, targetId }) => {
-    const code = (roomCode || '').toUpperCase().trim();
-    handleCastVote(code, socket.id, targetId);
+    const room = getRoomAndEnsureSocket(socket, roomCode);
+    if (room) {
+      handleCastVote(room.roomCode, socket.id, targetId);
+    }
   });
 
   // 8. SPY GUESS SUBMIT
   socket.on('SPY_GUESS_SUBMIT', ({ roomCode, wordGuess }) => {
-    const code = (roomCode || '').toUpperCase().trim();
-    handleSpyGuessSubmit(code, wordGuess);
+    const room = getRoomAndEnsureSocket(socket, roomCode);
+    if (room) {
+      handleSpyGuessSubmit(room.roomCode, wordGuess);
+    }
   });
 
   // DISCONNECT
