@@ -18,11 +18,9 @@ class NetworkService {
       customWords: [],
       spyCount: 1,
       gameMode: 'classic',
-      turnDuration: 30,
       words: [],
       secretWord: '',
       spies: [],
-      eliminatedPlayers: [],
       turnOrder: [],
       currentTurnIndex: 0,
       roundNumber: 1,
@@ -45,11 +43,7 @@ class NetworkService {
       );
 
       this.socket = io(serverUrl, {
-        transports: ['websocket'],
-        upgrade: false,
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000
+        transports: ['websocket', 'polling']
       });
 
       this.socket.on('connect', () => {
@@ -77,14 +71,14 @@ class NetworkService {
     }
   }
 
-  createRoom(hostName, categoryId = 'food', spyCount = 1, customWords = [], gameMode = 'classic', turnDuration = 30) {
+  createRoom(hostName, categoryId = 'food', spyCount = 1, customWords = [], gameMode = 'classic') {
     return new Promise((resolve) => {
       this.connectSocket();
       this.isRoomCreator = true;
       this.isHost = true;
 
       const emitCreate = () => {
-        this.socket.emit('CREATE_ROOM', { hostName, category: categoryId, spyCount, customWords, gameMode, turnDuration }, (res) => {
+        this.socket.emit('CREATE_ROOM', { hostName, category: categoryId, spyCount, customWords, gameMode }, (res) => {
           this.isRoomCreator = true;
           this.isHost = true;
           this.roomCode = res.roomCode;

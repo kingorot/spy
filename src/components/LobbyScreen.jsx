@@ -109,12 +109,7 @@ export const LobbyScreen = ({
       nextSpyCount = Math.max(2, Number(selectedSpyCount) || 2);
       setSelectedSpyCount(nextSpyCount);
     }
-
-    onUpdateSettings({
-      gameMode: modeId,
-      spyCount: nextSpyCount,
-      turnDuration: selectedTurnDuration !== undefined ? selectedTurnDuration : 30
-    });
+    onUpdateSettings({ gameMode: modeId, spyCount: nextSpyCount });
   };
 
   const handleSpyCountChange = (val) => {
