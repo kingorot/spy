@@ -12,7 +12,8 @@ const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  transports: ['websocket']
 });
 
 // Robust Fisher-Yates Shuffle for 100% unbiased randomness
