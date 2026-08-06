@@ -46,35 +46,17 @@ function addLogMessage(room, text) {
   room.clueLogs.push(entry);
 }
 
-function normalizeRoomState(room) {
-  if (!room) return room;
-  // Ensure primary property names
-  room.category = room.category || 'food';
-  room.gameMode = room.gameMode || 'classic';
-  room.spyCount = room.spyCount !== undefined ? room.spyCount : 1;
-  room.turnDuration = room.turnDuration !== undefined ? room.turnDuration : 30;
-
-  // Add alias properties to guarantee zero undefined issues
-  room.Category = room.category;
-  room.Mode = room.gameMode;
-  room.Spies = room.spyCount;
-  room.TurnDuration = room.turnDuration;
-  return room;
-}
-
 function broadcastState(roomCode) {
   const code = (roomCode || '').toUpperCase().trim();
-  let room = rooms.get(code);
+  const room = rooms.get(code);
   if (!room) return;
 
-  room = normalizeRoomState(room);
-
-  console.log(`📢 Broadcasting state for room [${code}], Phase: ${room.phase}, Category: ${room.category}, Mode: ${room.gameMode}, Spies: ${room.spyCount}, TurnDuration: ${room.turnDuration}`);
+  console.log(`📢 Broadcasting state for room [${code}], Phase: ${room.phase}, category: ${room.category}, gameMode: ${room.gameMode}, spyCount: ${room.spyCount}, turnDuration: ${room.turnDuration}`);
 
   // 1. Broadcast to Socket.IO room channel
   io.to(code).emit('STATE_UPDATE', room);
 
-  // 2. Direct broadcast to every player socket ID as bulletproof fallback
+  // 2. Direct broadcast to every player socket ID in room.players as bulletproof fallback
   room.players.forEach(p => {
     if (p.id) {
       io.to(p.id).emit('STATE_UPDATE', room);
@@ -317,7 +299,7 @@ io.on('connection', (socket) => {
     };
 
     rooms.set(roomCode, roomState);
-    console.log(`🏠 Oda Oluşturuldu: [${roomCode}] Ev Sahibi: ${hostName}, Mod: ${gameMode}`);
+    console.log(`🏠 Oda Oluşturuldu: [${roomCode}] Ev Sahibi: ${hostName}, gameMode: ${gameMode}`);
 
     if (callback) callback({ roomCode, peerId: socket.id });
     broadcastState(roomCode);
@@ -362,24 +344,26 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Support both camelCase and Capitalized property names from incoming data
-    const cat = data.category || data.Category;
-    const mode = data.gameMode || data.Mode;
-    const spies = data.spyCount !== undefined ? data.spyCount : data.Spies;
-    const duration = data.turnDuration !== undefined ? data.turnDuration : data.TurnDuration;
-
-    if (cat) room.category = cat;
-    if (mode) room.gameMode = mode;
-    if (duration !== undefined) room.turnDuration = Math.max(0, parseInt(duration, 10) || 0);
+    if (data.category) room.category = data.category;
+    if (data.gameMode) room.gameMode = data.gameMode;
+    if (data.turnDuration !== undefined) room.turnDuration = Math.max(0, parseInt(data.turnDuration, 10) || 0);
     if (data.customWords && Array.isArray(data.customWords)) room.customWords = data.customWords;
 
-    let targetSpyCount = spies !== undefined ? Math.max(1, parseInt(spies, 10) || 1) : room.spyCount;
+    let targetSpyCount = data.spyCount !== undefined ? Math.max(1, parseInt(data.spyCount, 10) || 1) : room.spyCount;
     if (room.gameMode === 'double') {
       targetSpyCount = Math.max(2, targetSpyCount);
     }
     room.spyCount = targetSpyCount;
 
-    broadcastState(room.roomCode);
+    console.log(`⚙️ Room [${room.roomCode}] settings updated: category=${room.category}, gameMode=${room.gameMode}, spyCount=${room.spyCount}, turnDuration=${room.turnDuration}`);
+
+    // Direct iteration broadcast to all players in room
+    room.players.forEach(p => {
+      if (p.id) {
+        io.to(p.id).emit('STATE_UPDATE', room);
+      }
+    });
+    io.to(room.roomCode).emit('STATE_UPDATE', room);
   });
 
   // 4. START GAME
@@ -426,7 +410,7 @@ io.on('connection', (socket) => {
     room.spyGuess = null;
     room.winner = null;
 
-    console.log(`🚀 Room [${room.roomCode}] started game: Category=${room.category}, Mode=${room.gameMode}, ActiveSpies=${spies.length}, Secret=${secretWord}`);
+    console.log(`🚀 Room [${room.roomCode}] started game: category=${room.category}, gameMode=${room.gameMode}, activeSpyCount=${spies.length}, secretWord=${secretWord}`);
     broadcastState(room.roomCode);
   });
 

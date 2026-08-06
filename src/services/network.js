@@ -55,7 +55,7 @@ class NetworkService {
       });
 
       this.socket.on('STATE_UPDATE', (newState) => {
-        console.log('3. Diğer oyuncu yeni durumu sunucudan aldı:', newState.roomCode, 'Category:', newState.category, 'Mode:', newState.gameMode, 'Spies:', newState.spyCount, 'TurnDuration:', newState.turnDuration);
+        console.log('3. Diğer oyuncu yeni durumu sunucudan aldı:', newState.roomCode, 'category:', newState.category, 'gameMode:', newState.gameMode, 'spyCount:', newState.spyCount, 'turnDuration:', newState.turnDuration);
         this.state = newState;
         if (newState.roomCode) {
           this.roomCode = newState.roomCode;
