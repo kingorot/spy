@@ -80,7 +80,7 @@ export function App() {
         setIsMuted={setIsMuted}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 pb-28 relative z-10">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 pb-28 relative z-10">
         {roomState.phase === 'LOBBY' && (
           <LobbyScreen
             roomState={roomState}
@@ -93,58 +93,55 @@ export function App() {
         )}
 
         {roomState.phase !== 'LOBBY' && (
-          <div className="flex flex-col lg:flex-row gap-5 items-start justify-center">
-            {/* Left Sidebar for İPUÇLARI Table (Exactly in the drawn brown box area) */}
-            <div className="w-full lg:w-64 flex-shrink-0 lg:sticky lg:top-20">
-              <ClueTable clueLogs={roomState.clueLogs} />
-            </div>
+          <div className="space-y-4">
+            <PlayerRoleBadge
+              isSpy={isSpy}
+              secretWord={roomState.secretWord}
+              playerName={myPlayer.name}
+            />
 
-            {/* Center Main Game Content */}
-            <div className="flex-1 max-w-4xl w-full space-y-4">
-              <PlayerRoleBadge
-                isSpy={isSpy}
-                secretWord={roomState.secretWord}
-                playerName={myPlayer.name}
+            {roomState.phase === 'CLUE_PHASE' && (
+              <CluePhase
+                turnOrder={roomState.turnOrder}
+                currentTurnIndex={roomState.currentTurnIndex}
+                players={roomState.players}
+                myPlayerId={myPlayerId}
+                onSubmitClue={handleSubmitClue}
               />
+            )}
 
-              {roomState.phase === 'CLUE_PHASE' && (
-                <CluePhase
-                  turnOrder={roomState.turnOrder}
-                  currentTurnIndex={roomState.currentTurnIndex}
-                  players={roomState.players}
-                  myPlayerId={myPlayerId}
-                  onSubmitClue={handleSubmitClue}
-                />
-              )}
+            {roomState.phase === 'VOTING_PHASE' && (
+              <VotingPhase
+                players={roomState.players}
+                myPlayerId={myPlayerId}
+                onCastVote={handleCastVote}
+                votes={roomState.votes}
+                voteLogs={roomState.voteLogs}
+              />
+            )}
 
-              {roomState.phase === 'VOTING_PHASE' && (
-                <VotingPhase
-                  players={roomState.players}
-                  myPlayerId={myPlayerId}
-                  onCastVote={handleCastVote}
-                  votes={roomState.votes}
-                  voteLogs={roomState.voteLogs}
-                />
-              )}
-
-              {roomState.phase === 'SPY_GUESS' && (
-                <SpyGuessPhase
-                  words={roomState.words}
-                  isSpy={isSpy}
-                  onSpyGuessSubmit={handleSpyGuessSubmit}
-                  accusedPlayerName={accusedPlayer ? accusedPlayer.name : 'Oyuncu'}
-                />
-              )}
-
-              <CardGrid
+            {roomState.phase === 'SPY_GUESS' && (
+              <SpyGuessPhase
                 words={roomState.words}
-                secretWord={roomState.secretWord}
                 isSpy={isSpy}
+                onSpyGuessSubmit={handleSpyGuessSubmit}
+                accusedPlayerName={accusedPlayer ? accusedPlayer.name : 'Oyuncu'}
               />
-            </div>
+            )}
+
+            <CardGrid
+              words={roomState.words}
+              secretWord={roomState.secretWord}
+              isSpy={isSpy}
+            />
           </div>
         )}
       </main>
+
+      {/* Floating Bottom-Left Clue Table (Positioned directly above GEÇMİŞ) */}
+      {roomState.roomCode && roomState.phase !== 'LOBBY' && (
+        <ClueTable clueLogs={roomState.clueLogs} players={roomState.players} />
+      )}
 
       {/* Floating Bottom-Right Voluntary Guess Button for SPY */}
       {isSpy && isPlaying && (
@@ -156,7 +153,7 @@ export function App() {
         </button>
       )}
 
-      {/* Game & Vote Log Panel */}
+      {/* Game & Vote Log Panel (GEÇMİŞ) */}
       {roomState.roomCode && (
         <GameLogPanel
           clueLogs={roomState.clueLogs}
