@@ -116,6 +116,7 @@ export function App() {
                 onSubmitClue={handleSubmitClue}
                 gameMode={roomState.gameMode}
                 turnDuration={roomState.turnDuration}
+                eliminatedPlayers={roomState.eliminatedPlayers || []}
               />
             )}
 

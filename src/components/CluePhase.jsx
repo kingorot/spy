@@ -8,20 +8,24 @@ export const CluePhase = ({
   players,
   myPlayerId,
   onSubmitClue,
-  gameMode = 'classic'
+  gameMode = 'classic',
+  turnDuration = 30,
+  eliminatedPlayers = []
 }) => {
   const [clueText, setClueText] = useState('');
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(turnDuration);
 
-  const currentTurnPlayerId = turnOrder[currentTurnIndex];
+  // Filter out eliminated players from active turn order
+  const activeTurnOrder = (turnOrder || []).filter(pid => !(eliminatedPlayers || []).includes(pid));
+  const currentTurnPlayerId = activeTurnOrder[currentTurnIndex] || activeTurnOrder[0];
   const activePlayer = players.find(p => p.id === currentTurnPlayerId) || { name: 'Oyuncu' };
-  const isMyTurn = currentTurnPlayerId === myPlayerId;
+  const isMyTurn = currentTurnPlayerId === myPlayerId && !(eliminatedPlayers || []).includes(myPlayerId);
 
-  // 30-Second Timed Mode Countdown
+  // Timed Mode Countdown
   useEffect(() => {
     if (gameMode !== 'timed') return;
 
-    setTimeLeft(30);
+    setTimeLeft(turnDuration);
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -36,7 +40,7 @@ export const CluePhase = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentTurnIndex, gameMode, isMyTurn, onSubmitClue]);
+  }, [currentTurnIndex, gameMode, turnDuration, isMyTurn, onSubmitClue]);
 
   const handleClueSubmit = (e) => {
     e.preventDefault();
@@ -82,7 +86,7 @@ export const CluePhase = ({
 
           <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400">
             <Clock className="w-3.5 h-3.5 text-zinc-500" />
-            <span>Sıradaki: {turnOrder[currentTurnIndex + 1] ? (players.find(p => p.id === turnOrder[currentTurnIndex + 1])?.name || 'Sonraki') : 'Oylama'}</span>
+            <span>Sıradaki: {activeTurnOrder[currentTurnIndex + 1] ? (players.find(p => p.id === activeTurnOrder[currentTurnIndex + 1])?.name || 'Sonraki') : 'Oylama'}</span>
           </div>
         </div>
       </div>
@@ -113,7 +117,7 @@ export const CluePhase = ({
 
       {/* Stepper */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-        {turnOrder.map((pid, idx) => {
+        {activeTurnOrder.map((pid, idx) => {
           const p = players.find(player => player.id === pid);
           const isDone = idx < currentTurnIndex;
           const isCurrent = idx === currentTurnIndex;
