@@ -254,10 +254,18 @@ io.on('connection', (socket) => {
     const room = rooms.get(code);
     if (!room) return;
 
-    if (category !== undefined) room.category = category;
-    if (spyCount !== undefined) room.spyCount = Math.max(1, Math.min(Number(spyCount) || 1, room.players.length - 1 || 1));
-    if (customWords !== undefined) room.customWords = customWords;
-    if (gameMode !== undefined) room.gameMode = gameMode;
+    if (category !== undefined && category !== null) {
+      room.category = category;
+    }
+    if (spyCount !== undefined && spyCount !== null) {
+      room.spyCount = Math.max(1, parseInt(spyCount, 10) || 1);
+    }
+    if (customWords !== undefined && customWords !== null) {
+      room.customWords = customWords;
+    }
+    if (gameMode !== undefined && gameMode !== null) {
+      room.gameMode = gameMode;
+    }
 
     broadcastState(code);
   });
@@ -272,7 +280,7 @@ io.on('connection', (socket) => {
     const secretWord = words[Math.floor(Math.random() * words.length)];
     const playerIds = room.players.map(p => p.id);
 
-    const activeSpyCount = Math.max(1, Math.min(room.spyCount || 1, playerIds.length - 1));
+    const activeSpyCount = Math.max(1, Math.min(room.spyCount || 1, Math.max(1, playerIds.length - 1)));
     const shuffledForSpies = shuffleArray(playerIds);
     const spies = shuffledForSpies.slice(0, activeSpyCount);
     const turnOrder = shuffleArray(playerIds);
