@@ -80,7 +80,7 @@ export function App() {
         setIsMuted={setIsMuted}
       />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-5 pb-28 relative z-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 pb-28 relative z-10">
         {roomState.phase === 'LOBBY' && (
           <LobbyScreen
             roomState={roomState}
@@ -93,51 +93,56 @@ export function App() {
         )}
 
         {roomState.phase !== 'LOBBY' && (
-          <>
-            <PlayerRoleBadge
-              isSpy={isSpy}
-              secretWord={roomState.secretWord}
-              playerName={myPlayer.name}
-            />
-
-            {roomState.phase === 'CLUE_PHASE' && (
-              <CluePhase
-                turnOrder={roomState.turnOrder}
-                currentTurnIndex={roomState.currentTurnIndex}
-                players={roomState.players}
-                myPlayerId={myPlayerId}
-                onSubmitClue={handleSubmitClue}
-              />
-            )}
-
-            {/* Dedicated Clues Table Component on main screen */}
-            <ClueTable clueLogs={roomState.clueLogs} />
-
-            {roomState.phase === 'VOTING_PHASE' && (
-              <VotingPhase
-                players={roomState.players}
-                myPlayerId={myPlayerId}
-                onCastVote={handleCastVote}
-                votes={roomState.votes}
-                voteLogs={roomState.voteLogs}
-              />
-            )}
-
-            {roomState.phase === 'SPY_GUESS' && (
-              <SpyGuessPhase
-                words={roomState.words}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+            {/* Main Game Content (3 cols) */}
+            <div className="lg:col-span-3 space-y-4">
+              <PlayerRoleBadge
                 isSpy={isSpy}
-                onSpyGuessSubmit={handleSpyGuessSubmit}
-                accusedPlayerName={accusedPlayer ? accusedPlayer.name : 'Oyuncu'}
+                secretWord={roomState.secretWord}
+                playerName={myPlayer.name}
               />
-            )}
 
-            <CardGrid
-              words={roomState.words}
-              secretWord={roomState.secretWord}
-              isSpy={isSpy}
-            />
-          </>
+              {roomState.phase === 'CLUE_PHASE' && (
+                <CluePhase
+                  turnOrder={roomState.turnOrder}
+                  currentTurnIndex={roomState.currentTurnIndex}
+                  players={roomState.players}
+                  myPlayerId={myPlayerId}
+                  onSubmitClue={handleSubmitClue}
+                />
+              )}
+
+              {roomState.phase === 'VOTING_PHASE' && (
+                <VotingPhase
+                  players={roomState.players}
+                  myPlayerId={myPlayerId}
+                  onCastVote={handleCastVote}
+                  votes={roomState.votes}
+                  voteLogs={roomState.voteLogs}
+                />
+              )}
+
+              {roomState.phase === 'SPY_GUESS' && (
+                <SpyGuessPhase
+                  words={roomState.words}
+                  isSpy={isSpy}
+                  onSpyGuessSubmit={handleSpyGuessSubmit}
+                  accusedPlayerName={accusedPlayer ? accusedPlayer.name : 'Oyuncu'}
+                />
+              )}
+
+              <CardGrid
+                words={roomState.words}
+                secretWord={roomState.secretWord}
+                isSpy={isSpy}
+              />
+            </div>
+
+            {/* Right Sidebar Clue Table (1 col) */}
+            <div className="lg:col-span-1 space-y-4 sticky top-20">
+              <ClueTable clueLogs={roomState.clueLogs} />
+            </div>
+          </div>
         )}
       </main>
 
