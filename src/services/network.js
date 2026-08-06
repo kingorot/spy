@@ -51,6 +51,9 @@ class NetworkService {
 
       this.socket.on('STATE_UPDATE', (newState) => {
         this.state = newState;
+        if (newState.roomCode) {
+          this.roomCode = newState.roomCode;
+        }
         this.isHost = this.state.hostId === this.socket.id;
         if (this.onStateChange) {
           this.onStateChange(this.state);
@@ -106,32 +109,37 @@ class NetworkService {
   }
 
   startGame() {
-    if (this.socket && this.roomCode) {
-      this.socket.emit('START_GAME', { roomCode: this.roomCode });
+    const code = this.roomCode || this.state.roomCode;
+    if (this.socket && code) {
+      this.socket.emit('START_GAME', { roomCode: code });
     }
   }
 
   returnToLobby() {
-    if (this.socket && this.roomCode) {
-      this.socket.emit('RETURN_TO_LOBBY', { roomCode: this.roomCode });
+    const code = this.roomCode || this.state.roomCode;
+    if (this.socket && code) {
+      this.socket.emit('RETURN_TO_LOBBY', { roomCode: code });
     }
   }
 
   submitClue(clueText) {
-    if (this.socket && this.roomCode) {
-      this.socket.emit('SUBMIT_CLUE', { roomCode: this.roomCode, clueText });
+    const code = this.roomCode || this.state.roomCode;
+    if (this.socket && code) {
+      this.socket.emit('SUBMIT_CLUE', { roomCode: code, clueText });
     }
   }
 
   castVote(targetId) {
-    if (this.socket && this.roomCode) {
-      this.socket.emit('CAST_VOTE', { roomCode: this.roomCode, targetId });
+    const code = this.roomCode || this.state.roomCode;
+    if (this.socket && code) {
+      this.socket.emit('CAST_VOTE', { roomCode: code, targetId });
     }
   }
 
   submitSpyGuess(wordGuess) {
-    if (this.socket && this.roomCode) {
-      this.socket.emit('SPY_GUESS_SUBMIT', { roomCode: this.roomCode, wordGuess });
+    const code = this.roomCode || this.state.roomCode;
+    if (this.socket && code) {
+      this.socket.emit('SPY_GUESS_SUBMIT', { roomCode: code, wordGuess });
     }
   }
 }
