@@ -356,7 +356,14 @@ io.on('connection', (socket) => {
     room.spyCount = targetSpyCount;
 
     console.log(`⚙️ Room [${room.roomCode}] settings updated: Category=${room.category}, Mode=${room.gameMode}, Spies=${room.spyCount}, TurnDuration=${room.turnDuration}`);
-    broadcastState(room.roomCode);
+
+    // Direct iteration broadcast to all players in room
+    room.players.forEach(p => {
+      if (p.id) {
+        io.to(p.id).emit('STATE_UPDATE', room);
+      }
+    });
+    io.to(room.roomCode).emit('STATE_UPDATE', room);
   });
 
   // 4. START GAME
