@@ -33,13 +33,15 @@ class NetworkService {
 
   connectSocket() {
     if (!this.socket) {
-      // Allow custom server URL via env or fallback to localhost during dev
+      // Connect to Render backend in production
       const customUrl = import.meta.env.VITE_SERVER_URL;
       const serverUrl = customUrl || (
         window.location.hostname === 'localhost'
           ? 'http://localhost:4000'
-          : `https://${window.location.hostname}`
+          : 'https://spy-1ehe.onrender.com'
       );
+
+      console.log('🔌 Connecting to Socket.IO backend at:', serverUrl);
 
       this.socket = io(serverUrl, {
         transports: ['websocket', 'polling']
@@ -56,6 +58,10 @@ class NetworkService {
         if (this.onStateChange) {
           this.onStateChange(this.state);
         }
+      });
+
+      this.socket.on('disconnect', () => {
+        console.log('❌ Socket.IO Sunucu Bağlantısı Kesildi');
       });
     }
   }
