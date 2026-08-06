@@ -27,8 +27,8 @@ export function App() {
     };
   }, []);
 
-  const handleHostRoom = async (hostName, categoryId, spyCount, customWords = [], gameMode = 'classic') => {
-    const { roomCode, peerId } = await networkService.createRoom(hostName, categoryId, spyCount, customWords, gameMode);
+  const handleHostRoom = async (hostName, categoryId, spyCount, customWords = [], gameMode = 'classic', turnDuration = 30) => {
+    const { roomCode, peerId } = await networkService.createRoom(hostName, categoryId, spyCount, customWords, gameMode, turnDuration);
     setMyPlayerId(peerId);
   };
 
@@ -113,6 +113,7 @@ export function App() {
                 myPlayerId={myPlayerId}
                 onSubmitClue={handleSubmitClue}
                 gameMode={roomState.gameMode}
+                turnDuration={roomState.turnDuration}
               />
             )}
 

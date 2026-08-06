@@ -12,7 +12,7 @@ const ICON_MAP = { Utensils, Dog, Globe, Briefcase, Film, Box, Trophy };
 
 const GAME_MODES = [
   { id: 'classic', name: 'Klasik Mod', desc: 'Siviller kelimeyi bilir, casus kelimeyi tahmin etmeye çalışır.' },
-  { id: 'timed', name: 'Zamana Karşı (30s)', desc: 'Her tur için 30 saniye süre sınırı.' },
+  { id: 'timed', name: 'Zamana Karşı', desc: 'Her tur için belirlediğiniz süre sınırı.' },
   { id: 'double', name: 'Çift Casus', desc: 'Oyun alanında 2 casus birbirini tanımadan yarışır.' }
 ];
 
@@ -41,6 +41,7 @@ export const LobbyScreen = ({
   const [selectedCategory, setSelectedCategory] = useState(roomState.category || 'food');
   const [selectedGameMode, setSelectedGameMode] = useState(roomState.gameMode || 'classic');
   const [selectedSpyCount, setSelectedSpyCount] = useState(roomState.spyCount || 1);
+  const [selectedTurnDuration, setSelectedTurnDuration] = useState(roomState.turnDuration || 30);
 
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isGameModeDropdownOpen, setIsGameModeDropdownOpen] = useState(false);
@@ -51,7 +52,8 @@ export const LobbyScreen = ({
     if (roomState.category) setSelectedCategory(roomState.category);
     if (roomState.gameMode) setSelectedGameMode(roomState.gameMode);
     if (roomState.spyCount) setSelectedSpyCount(roomState.spyCount);
-  }, [roomState.category, roomState.gameMode, roomState.spyCount]);
+    if (roomState.turnDuration) setSelectedTurnDuration(roomState.turnDuration);
+  }, [roomState.category, roomState.gameMode, roomState.spyCount, roomState.turnDuration]);
 
   // Auto-detect room parameter from URL share link
   useEffect(() => {
@@ -75,7 +77,7 @@ export const LobbyScreen = ({
     e.preventDefault();
     if (!nickname.trim()) return;
     soundEngine.playClick();
-    onHostRoom(nickname.trim(), 'food', 1, [], 'classic');
+    onHostRoom(nickname.trim(), 'food', 1, [], 'classic', 30);
   };
 
   const handleJoinSubmit = (e) => {
@@ -101,13 +103,28 @@ export const LobbyScreen = ({
     soundEngine.playClick();
     setSelectedGameMode(modeId);
     setIsGameModeDropdownOpen(false);
-    onUpdateSettings({ gameMode: modeId });
+
+    let nextSpyCount = selectedSpyCount;
+    if (modeId === 'double') {
+      nextSpyCount = Math.max(2, selectedSpyCount);
+      setSelectedSpyCount(nextSpyCount);
+    }
+    onUpdateSettings({ gameMode: modeId, spyCount: nextSpyCount });
   };
 
   const handleSpyCountChange = (val) => {
-    const cnt = Math.max(1, parseInt(val, 10) || 1);
+    let cnt = Math.max(1, parseInt(val, 10) || 1);
+    if (selectedGameMode === 'double') {
+      cnt = Math.max(2, cnt);
+    }
     setSelectedSpyCount(cnt);
     onUpdateSettings({ spyCount: cnt });
+  };
+
+  const handleTurnDurationChange = (val) => {
+    const dur = Math.max(5, parseInt(val, 10) || 30);
+    setSelectedTurnDuration(dur);
+    onUpdateSettings({ turnDuration: dur });
   };
 
   const currentCategoryObj = CATEGORIES.find(c => c.id === selectedCategory) || {
@@ -284,6 +301,30 @@ export const LobbyScreen = ({
             )}
           </div>
 
+          {/* Timed Mode Duration Input */}
+          {selectedGameMode === 'timed' && (
+            <div className="space-y-1.5 pt-1 border-t border-zinc-850">
+              <label className="block text-xs font-bold text-zinc-300">
+                Tur Süresi (Saniye)
+              </label>
+
+              {isHost ? (
+                <input
+                  type="number"
+                  min={5}
+                  max={300}
+                  value={selectedTurnDuration}
+                  onChange={(e) => handleTurnDurationChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
+                />
+              ) : (
+                <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
+                  {selectedTurnDuration} Saniye
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Casus Sayısı Input */}
           <div className="space-y-1.5 pt-1 border-t border-zinc-850">
             <label className="block text-xs font-bold text-zinc-300">
@@ -293,7 +334,7 @@ export const LobbyScreen = ({
             {isHost ? (
               <input
                 type="number"
-                min={1}
+                min={selectedGameMode === 'double' ? 2 : 1}
                 max={Math.max(1, roomState.players.length - 1)}
                 value={selectedSpyCount}
                 onChange={(e) => handleSpyCountChange(e.target.value)}

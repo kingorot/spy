@@ -199,12 +199,29 @@ function handleSpyGuessSubmit(roomCode, wordGuess) {
   if (isCorrect) {
     room.winner = 'SPIES';
     addLogMessage(room, `CASUS DOĞRU TAHMİN ETTİ. Gizli kelime: "${room.secretWord}". Casus kazandı.`);
+    room.phase = 'GAME_OVER';
   } else {
-    room.winner = 'NORMALS';
-    addLogMessage(room, `CASUS YANLIŞ TAHMİN ETTİ. Seçimi: "${wordGuess}", Gerçek Kelime: "${room.secretWord}". Siviller kazandı.`);
+    // If spy guess is wrong, remove this spy from room.spies
+    const accusedId = room.accusedPlayerId;
+    room.spies = room.spies.filter(id => id !== accusedId);
+
+    // If there are still remaining spies in the room (e.g. Double Spy mode)
+    if (room.spies.length > 0) {
+      room.roundNumber += 1;
+      addLogMessage(room, `Casus yanlış tahmin etti! Ancak masada hala ${room.spies.length} casus var. ${room.roundNumber}. Tur başlıyor...`);
+      room.currentTurnIndex = 0;
+      room.votes = {};
+      room.voteLogs = [];
+      room.accusedPlayerId = null;
+      room.spyGuess = null;
+      room.phase = 'CLUE_PHASE';
+    } else {
+      room.winner = 'NORMALS';
+      addLogMessage(room, `CASUS YANLIŞ TAHMİN ETTİ. Seçimi: "${wordGuess}", Gerçek Kelime: "${room.secretWord}". Tüm casuslar elendi, Siviller kazandı!`);
+      room.phase = 'GAME_OVER';
+    }
   }
 
-  room.phase = 'GAME_OVER';
   broadcastState(code);
 }
 
@@ -212,9 +229,14 @@ io.on('connection', (socket) => {
   console.log(`🔌 Yeni Bağlantı (Socket ID): ${socket.id}`);
 
   // 1. CREATE ROOM (Host)
-  socket.on('CREATE_ROOM', ({ hostName, category, spyCount, customWords, gameMode }, callback) => {
+  socket.on('CREATE_ROOM', ({ hostName, category, spyCount, customWords, gameMode, turnDuration }, callback) => {
     const roomCode = generateRoomCode();
     socket.join(roomCode);
+
+    let initialSpyCount = Number(spyCount) || 1;
+    if (gameMode === 'double') {
+      initialSpyCount = Math.max(2, initialSpyCount);
+    }
 
     const roomState = {
       roomCode,
@@ -223,8 +245,9 @@ io.on('connection', (socket) => {
       phase: 'LOBBY',
       category: category || 'food',
       customWords: customWords || [],
-      spyCount: Number(spyCount) || 1,
+      spyCount: initialSpyCount,
       gameMode: gameMode || 'classic',
+      turnDuration: Number(turnDuration) || 30,
       words: [],
       secretWord: '',
       spies: [],
@@ -240,7 +263,7 @@ io.on('connection', (socket) => {
     };
 
     rooms.set(roomCode, roomState);
-    console.log(`🏠 Oda Oluşturuldu: [${roomCode}] Ev Sahibi: ${hostName}`);
+    console.log(`🏠 Oda Oluşturuldu: [${roomCode}] Ev Sahibi: ${hostName}, Mod: ${gameMode}`);
 
     if (callback) callback({ roomCode, peerId: socket.id });
     broadcastState(roomCode);
@@ -282,10 +305,16 @@ io.on('connection', (socket) => {
 
     if (data.category) room.category = data.category;
     if (data.gameMode) room.gameMode = data.gameMode;
-    if (data.spyCount) room.spyCount = Math.max(1, parseInt(data.spyCount, 10) || 1);
+    if (data.turnDuration) room.turnDuration = Math.max(5, parseInt(data.turnDuration, 10) || 30);
     if (data.customWords && Array.isArray(data.customWords)) room.customWords = data.customWords;
 
-    console.log(`⚙️ Room [${room.roomCode}] settings updated: Category=${room.category}, Mode=${room.gameMode}`);
+    let targetSpyCount = data.spyCount ? Math.max(1, parseInt(data.spyCount, 10) || 1) : room.spyCount;
+    if (room.gameMode === 'double') {
+      targetSpyCount = Math.max(2, targetSpyCount);
+    }
+    room.spyCount = targetSpyCount;
+
+    console.log(`⚙️ Room [${room.roomCode}] settings updated: Category=${room.category}, Mode=${room.gameMode}, Spies=${room.spyCount}, TurnDuration=${room.turnDuration}`);
     broadcastState(room.roomCode);
   });
 
@@ -299,7 +328,12 @@ io.on('connection', (socket) => {
     const secretWord = words[Math.floor(Math.random() * words.length)];
     const playerIds = room.players.map(p => p.id);
 
-    const activeSpyCount = Math.max(1, Math.min(room.spyCount || 1, Math.max(1, playerIds.length - 1)));
+    let activeSpyCount = Math.max(1, parseInt(room.spyCount, 10) || 1);
+    if (room.gameMode === 'double') {
+      activeSpyCount = Math.max(2, activeSpyCount);
+    }
+    activeSpyCount = Math.min(activeSpyCount, Math.max(1, playerIds.length - 1));
+
     const spies = shuffleArray(playerIds).slice(0, activeSpyCount);
     const turnOrder = shuffleArray(playerIds);
 
@@ -323,7 +357,7 @@ io.on('connection', (socket) => {
     room.spyGuess = null;
     room.winner = null;
 
-    console.log(`🚀 Room [${room.roomCode}] started game: Category=${room.category}, Mode=${room.gameMode}, Secret=${secretWord}`);
+    console.log(`🚀 Room [${room.roomCode}] started game: Category=${room.category}, Mode=${room.gameMode}, ActiveSpies=${spies.length}, Secret=${secretWord}`);
     broadcastState(room.roomCode);
   });
 
@@ -347,8 +381,9 @@ io.on('connection', (socket) => {
       phase: 'LOBBY',
       category: room.category || 'food',
       customWords: room.customWords || [],
-      spyCount: room.spyCount || 1,
+      spyCount: room.gameMode === 'double' ? Math.max(2, room.spyCount || 2) : (room.spyCount || 1),
       gameMode: room.gameMode || 'classic',
+      turnDuration: room.turnDuration || 30,
       words: [],
       secretWord: '',
       spies: [],
