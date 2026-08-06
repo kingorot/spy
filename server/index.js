@@ -247,10 +247,10 @@ io.on('connection', (socket) => {
     broadcastState(code);
   });
 
-  // 3. START GAME (Fisher-Yates unbiased random spy selection & turn order)
+  // 3. START GAME
   socket.on('START_GAME', ({ roomCode }) => {
     const room = rooms.get(roomCode);
-    if (!room || room.hostId !== socket.id) return;
+    if (!room || (room.hostId !== socket.id && !room.players.find(p => p.id === socket.id)?.isHost)) return;
 
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
     const secretWord = words[Math.floor(Math.random() * words.length)];
@@ -288,6 +288,11 @@ io.on('connection', (socket) => {
     const code = (roomCode || '').toUpperCase().trim();
     const room = rooms.get(code);
     if (!room) return;
+
+    const player = room.players.find(p => p.id === socket.id);
+    const isHost = room.hostId === socket.id || (player && player.isHost);
+
+    if (!isHost) return;
 
     room.phase = 'LOBBY';
     room.words = [];
