@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Users, Copy, Check, Play, ShieldAlert, PlusCircle, Crown, ArrowRight, Utensils, Dog, Globe, Briefcase, Film, Box, Trophy } from 'lucide-react';
+import { Users, Copy, Check, Play, PlusCircle, Crown, ArrowRight, Utensils, Dog, Globe, Briefcase, Film, Box, Trophy } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
 import { soundEngine } from '../utils/audio';
 
@@ -28,6 +28,16 @@ export const LobbyScreen = ({
   const [spyCount, setSpyCount] = useState(1);
   const [copied, setCopied] = useState(false);
   const [customWordsText, setCustomWordsText] = useState('');
+
+  // Auto-detect room parameter from URL share link
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room');
+    if (roomParam) {
+      setRoomCodeInput(roomParam.toUpperCase());
+      setMode('JOIN');
+    }
+  }, []);
 
   const handleCopyLink = () => {
     soundEngine.playClick();
@@ -216,7 +226,6 @@ export const LobbyScreen = ({
                 );
               })}
 
-              {/* CUSTOM CATEGORY SELECTION */}
               <button
                 type="button"
                 onClick={() => setSelectedCategory('custom')}
@@ -232,7 +241,6 @@ export const LobbyScreen = ({
             </div>
           </div>
 
-          {/* CUSTOM WORDS TEXT AREA */}
           {selectedCategory === 'custom' && (
             <div>
               <label className="block text-xs font-bold text-zinc-400 mb-1">

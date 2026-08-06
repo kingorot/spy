@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 import { CATEGORIES } from '../data/categories';
 
@@ -31,20 +31,14 @@ export const CardGrid = ({ words = [], secretWord = '', isSpy = false }) => {
               className="card-flip-container h-[82px] sm:h-[94px] cursor-pointer select-none"
             >
               <div className={`card-flip-inner ${isFlipped ? 'is-flipped' : ''}`}>
-                {/* FRONT FACE (Word centered in middle of card, no number badge) */}
+                {/* FRONT FACE (Word centered in middle of card, no GİZLİ badge) */}
                 <div
-                  className={`card-face-front p-3 border flex flex-col items-center justify-center text-center relative shadow-md transition-all ${
+                  className={`card-face-front p-3 border flex items-center justify-center text-center relative shadow-md transition-all ${
                     isSecret
                       ? 'card-secret-emerald'
                       : 'glass-card-matrix hover:border-zinc-500'
                   }`}
                 >
-                  {isSecret && (
-                    <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[8px] font-black text-emerald-300 uppercase tracking-widest bg-emerald-950/90 px-1.5 py-0.5 rounded border border-emerald-500/50">
-                      <Check className="w-2.5 h-2.5 text-emerald-400" /> GİZLİ
-                    </span>
-                  )}
-
                   <p className={`text-xs sm:text-sm font-black tracking-wide break-words text-center ${
                     isSecret ? 'text-emerald-100 text-sm sm:text-base font-black' : 'text-zinc-100'
                   }`}>
