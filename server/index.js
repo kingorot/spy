@@ -61,7 +61,7 @@ function handleClueSubmit(roomCode, senderId, clueText) {
       broadcastState(roomCode);
     } else {
       room.phase = 'VOTING_PHASE';
-      addLogMessage(room, `🗳️ ${room.roundNumber}. Tur İpuçları Tamamlandı. Oylama başladı!`);
+      addLogMessage(room, `${room.roundNumber}. Tur Tamamlandı. Oylama başladı.`);
       broadcastState(roomCode);
     }
   }
@@ -124,12 +124,11 @@ function evaluateVotes(roomCode) {
     }
   });
 
-  // PAS or TIE -> NEXT ROUND (KEEP EXACT SAME TURN ORDER, DO NOT RESHUFFLE!)
+  // PAS or TIE -> NEXT ROUND
   if (accusedId === 'PAS' || isTie || !accusedId) {
     room.roundNumber += 1;
-    addLogMessage(room, `🛑 Çoğunluk Pas Geçti veya eşitlik sağlandı. Kimse elenmedi! ${room.roundNumber}. Tur başlıyor...`);
+    addLogMessage(room, `Çoğunluk Pas Geçti veya eşitlik sağlandı. Kimse elenmedi. ${room.roundNumber}. Tur başlıyor...`);
 
-    // Reset current turn index to 0, keep same turnOrder!
     room.currentTurnIndex = 0;
     room.votes = {};
     room.voteLogs = [];
@@ -144,10 +143,10 @@ function evaluateVotes(roomCode) {
   const isSpy = room.spies.includes(accusedId);
 
   if (isSpy) {
-    addLogMessage(room, `🔍 ${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} 🎯 CASUS OLARAK YAKALANDI! Son tahmin hakkı açılıyor...`);
+    addLogMessage(room, `${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} CASUS OLARAK YAKALANDI. Son tahmin hakkı açılıyor...`);
     room.phase = 'SPY_GUESS';
   } else {
-    addLogMessage(room, `❌ ${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} masum bir SİVİL idi! Yanlış kişi elendi, Casus kazandı!`);
+    addLogMessage(room, `${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} masum bir SİVİL idi. Yanlış kişi elendi, Casus kazandı.`);
     room.winner = 'SPIES';
     room.phase = 'GAME_OVER';
   }
@@ -164,10 +163,10 @@ function handleSpyGuessSubmit(roomCode, wordGuess) {
 
   if (isCorrect) {
     room.winner = 'SPIES';
-    addLogMessage(room, `🕵️ CASUS DOĞRU TAHMİN ETTİ! Gizli kelime: "${room.secretWord}". Casus kazandı!`);
+    addLogMessage(room, `CASUS DOĞRU TAHMİN ETTİ. Gizli kelime: "${room.secretWord}". Casus kazandı.`);
   } else {
     room.winner = 'NORMALS';
-    addLogMessage(room, `🎉 CASUS YANLIŞ TAHMİN ETTİ! Seçimi: "${wordGuess}", Gerçek Kelime: "${room.secretWord}". Siviller kazandı!`);
+    addLogMessage(room, `CASUS YANLIŞ TAHMİN ETTİ. Seçimi: "${wordGuess}", Gerçek Kelime: "${room.secretWord}". Siviller kazandı.`);
   }
 
   room.phase = 'GAME_OVER';
@@ -231,14 +230,14 @@ io.on('connection', (socket) => {
         isReady: true
       };
       room.players.push(newPlayer);
-      addLogMessage(room, `👋 ${newPlayer.name} lobiye katıldı.`);
+      addLogMessage(room, `${newPlayer.name} lobiye katıldı.`);
     }
 
     if (callback) callback({ roomCode: code, peerId: socket.id });
     broadcastState(code);
   });
 
-  // 3. START GAME (Fixed Turn Order generated ONCE at start!)
+  // 3. START GAME
   socket.on('START_GAME', ({ roomCode }) => {
     const room = rooms.get(roomCode);
     if (!room || room.hostId !== socket.id) return;
@@ -249,7 +248,6 @@ io.on('connection', (socket) => {
     const shuffledPlayerIds = [...playerIds].sort(() => 0.5 - Math.random());
     const spies = shuffledPlayerIds.slice(0, room.spyCount);
 
-    // FIXED TURN ORDER DETERMINED ONCE ON START_GAME
     const turnOrder = [...playerIds].sort(() => 0.5 - Math.random());
 
     room.phase = 'CLUE_PHASE';
@@ -263,7 +261,7 @@ io.on('connection', (socket) => {
       {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         senderName: 'Sistem',
-        text: `🎮 1. Tur Başladı! 20 Kelimelik Matris Oluşturuldu.`
+        text: `1. Tur Başladı. 20 Kelime Matris Oluşturuldu.`
       }
     ];
     room.votes = {};
@@ -297,7 +295,7 @@ io.on('connection', (socket) => {
       if (idx !== -1) {
         const leavingPlayer = room.players[idx];
         room.players.splice(idx, 1);
-        addLogMessage(room, `🚪 ${leavingPlayer.name} odadan ayrıldı.`);
+        addLogMessage(room, `${leavingPlayer.name} odadan ayrıldı.`);
 
         if (room.players.length === 0) {
           rooms.delete(code);
