@@ -247,7 +247,20 @@ io.on('connection', (socket) => {
     broadcastState(code);
   });
 
-  // 3. START GAME
+  // 3. UPDATE ROOM SETTINGS (Category, Spy Count, Custom Words updated live in lobby)
+  socket.on('UPDATE_ROOM_SETTINGS', ({ roomCode, category, spyCount, customWords }) => {
+    const code = (roomCode || '').toUpperCase().trim();
+    const room = rooms.get(code);
+    if (!room) return;
+
+    if (category !== undefined) room.category = category;
+    if (spyCount !== undefined) room.spyCount = Number(spyCount);
+    if (customWords !== undefined) room.customWords = customWords;
+
+    broadcastState(code);
+  });
+
+  // 4. START GAME
   socket.on('START_GAME', ({ roomCode }) => {
     const code = (roomCode || '').toUpperCase().trim();
     const room = rooms.get(code);
@@ -284,7 +297,7 @@ io.on('connection', (socket) => {
     broadcastState(code);
   });
 
-  // 4. RETURN TO LOBBY (Always resets room to a fresh lobby for all connected players)
+  // 5. RETURN TO LOBBY
   socket.on('RETURN_TO_LOBBY', ({ roomCode }) => {
     const code = (roomCode || '').toUpperCase().trim();
     const room = rooms.get(code);
@@ -331,19 +344,19 @@ io.on('connection', (socket) => {
     io.to(code).emit('STATE_UPDATE', freshLobbyState);
   });
 
-  // 5. SUBMIT CLUE
+  // 6. SUBMIT CLUE
   socket.on('SUBMIT_CLUE', ({ roomCode, clueText }) => {
     const code = (roomCode || '').toUpperCase().trim();
     handleClueSubmit(code, socket.id, clueText);
   });
 
-  // 6. CAST VOTE
+  // 7. CAST VOTE
   socket.on('CAST_VOTE', ({ roomCode, targetId }) => {
     const code = (roomCode || '').toUpperCase().trim();
     handleCastVote(code, socket.id, targetId);
   });
 
-  // 7. SPY GUESS SUBMIT
+  // 8. SPY GUESS SUBMIT
   socket.on('SPY_GUESS_SUBMIT', ({ roomCode, wordGuess }) => {
     const code = (roomCode || '').toUpperCase().trim();
     handleSpyGuessSubmit(code, wordGuess);

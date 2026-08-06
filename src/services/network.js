@@ -108,6 +108,13 @@ class NetworkService {
     });
   }
 
+  updateRoomSettings(settings) {
+    const code = this.roomCode || this.state.roomCode;
+    if (this.socket && code) {
+      this.socket.emit('UPDATE_ROOM_SETTINGS', { roomCode: code, ...settings });
+    }
+  }
+
   startGame() {
     const code = this.roomCode || this.state.roomCode;
     if (this.socket && code) {
