@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Users, Copy, Check, Play, PlusCircle, Crown, ArrowRight,
-  ChevronDown, ChevronUp, ShieldAlert, Sparkles, Utensils,
-  Dog, Globe, Briefcase, Film, Box, Trophy
+  ChevronDown, ChevronUp, Utensils, Dog, Globe, Briefcase, Film, Box, Trophy
 } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
 import { soundEngine } from '../utils/audio';
@@ -124,7 +123,7 @@ export const LobbyScreen = ({
           </div>
         </div>
 
-        {/* Room Settings (Collapsible Dropdown Category & Spy Count) */}
+        {/* Room Settings */}
         <div className="glass-panel p-5 rounded-2xl border border-zinc-800 space-y-4 shadow-xl">
           <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-800 pb-2">
             OYUN AYARLARI
@@ -228,36 +227,24 @@ export const LobbyScreen = ({
 
           {/* Casus Sayısı & Oyun Modu */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            {/* Casus Sayısı */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                <span>Casus Sayısı</span>
+            {/* Custom Editable Casus Sayısı Input */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-zinc-300">
+                Casus Sayısı
               </label>
 
               {isHost ? (
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3].map(cnt => {
-                    const isSelected = spyCount === cnt;
-                    return (
-                      <button
-                        key={cnt}
-                        type="button"
-                        onClick={() => {
-                          soundEngine.playClick();
-                          onUpdateSettings({ spyCount: cnt });
-                        }}
-                        className={`flex-1 py-2.5 rounded-xl border text-xs font-black transition-all ${
-                          isSelected
-                            ? 'bg-white text-zinc-950 border-white shadow-md'
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        {cnt} Casus
-                      </button>
-                    );
-                  })}
-                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={Math.max(1, roomState.players.length - 1)}
+                  value={spyCount}
+                  onChange={(e) => {
+                    const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                    onUpdateSettings({ spyCount: val });
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
+                />
               ) : (
                 <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
                   {spyCount} Casus
@@ -266,10 +253,9 @@ export const LobbyScreen = ({
             </div>
 
             {/* Oyun Modu */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Oyun Modu</span>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-zinc-300">
+                Oyun Modu
               </label>
 
               {isHost ? (
@@ -371,7 +357,7 @@ export const LobbyScreen = ({
           <div className="space-y-3">
             <button
               onClick={() => { soundEngine.playClick(); setMode('CREATE'); }}
-              className="w-full py-4 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base flex items-center justify-center gap-2 shadow-lg transition-all"
+              className="w-full py-4 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
             >
               <PlusCircle className="w-5 h-5" />
               <span>Oda Oluştur</span>
@@ -379,7 +365,7 @@ export const LobbyScreen = ({
 
             <button
               onClick={() => { soundEngine.playClick(); setMode('JOIN'); }}
-              className="w-full py-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 font-black text-base flex items-center justify-center gap-2 transition-all"
+              className="w-full py-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 font-black text-base flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Users className="w-5 h-5 text-zinc-400" />
               <span>Lobiye Katıl</span>
@@ -411,7 +397,7 @@ export const LobbyScreen = ({
             type="submit"
             className="w-full py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer"
           >
-            <span>Odayı Oluştur ve Lobiye Geç</span>
+            <span>Oda Oluştur</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
