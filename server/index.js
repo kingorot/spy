@@ -249,22 +249,23 @@ io.on('connection', (socket) => {
   });
 
   // 3. UPDATE SETTINGS (In Lobby)
-  socket.on('UPDATE_SETTINGS', ({ roomCode, category, spyCount, customWords, gameMode }) => {
+  socket.on('UPDATE_SETTINGS', (data) => {
+    const roomCode = data.roomCode || data.code;
     const code = (roomCode || '').toUpperCase().trim();
     const room = rooms.get(code);
     if (!room) return;
 
-    if (category !== undefined && category !== null) {
-      room.category = category;
+    if (data.category !== undefined && data.category !== null) {
+      room.category = data.category;
     }
-    if (spyCount !== undefined && spyCount !== null) {
-      room.spyCount = Math.max(1, parseInt(spyCount, 10) || 1);
+    if (data.spyCount !== undefined && data.spyCount !== null) {
+      room.spyCount = Math.max(1, parseInt(data.spyCount, 10) || 1);
     }
-    if (customWords !== undefined && customWords !== null) {
-      room.customWords = customWords;
+    if (data.customWords !== undefined && Array.isArray(data.customWords)) {
+      room.customWords = data.customWords;
     }
-    if (gameMode !== undefined && gameMode !== null) {
-      room.gameMode = gameMode;
+    if (data.gameMode !== undefined && data.gameMode !== null) {
+      room.gameMode = data.gameMode;
     }
 
     broadcastState(code);
