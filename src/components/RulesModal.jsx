@@ -37,9 +37,9 @@ export const RulesModal = ({ onClose }) => {
 
           <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1">
             <span className="font-extrabold text-white block mb-0.5">3. Kazanma Koşulları</span>
-            <p>- Yanlış kişi elenirse ➔ **Casus Kazanır.**</p>
-            <p>- Casus yakalanıp veya gönüllü tahmin yapıp kelimeyi bilirse ➔ **Casus Kazanır.**</p>
-            <p>- Casus kelimeyi bilemezse ➔ **Siviller Kazanır.**</p>
+            <p>- Yanlış kişi elenirse ➔ Casus Kazanır.</p>
+            <p>- Casus yakalanıp veya gönüllü tahmin yapıp kelimeyi bilirse ➔ Casus Kazanır.</p>
+            <p>- Casus kelimeyi bilemezse ➔ Siviller Kazanır.</p>
           </div>
         </div>
       </div>
