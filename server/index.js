@@ -198,27 +198,29 @@ function evaluateVotes(roomCode) {
   broadcastState(code);
 }
 
-function handleSpyGuessSubmit(roomCode, wordGuess) {
+function handleSpyGuessSubmit(roomCode, socketId, wordGuess) {
   const code = (roomCode || '').toUpperCase().trim();
   const room = rooms.get(code);
   if (!room) return;
+
+  const guessingSpyId = room.accusedPlayerId || socketId;
+  const guessingPlayer = room.players.find(p => p.id === guessingSpyId) || { name: 'Casus' };
 
   room.spyGuess = wordGuess;
   const isCorrect = wordGuess.toLowerCase() === room.secretWord.toLowerCase();
 
   if (isCorrect) {
     room.winner = 'SPIES';
-    addLogMessage(room, `CASUS DOĞRU TAHMİN ETTİ. Gizli kelime: "${room.secretWord}". Casus kazandı.`);
+    addLogMessage(room, `CASUS DOĞRU TAHMİN ETTİ (${guessingPlayer.name}). Gizli kelime: "${room.secretWord}". Casuslar kazandı.`);
     room.phase = 'GAME_OVER';
   } else {
-    // If spy guess is wrong, remove this spy from room.spies
-    const accusedId = room.accusedPlayerId;
-    room.spies = room.spies.filter(id => id !== accusedId);
+    // Eliminate this specific spy from room.spies
+    room.spies = room.spies.filter(id => id !== guessingSpyId);
 
-    // If there are still remaining spies in the room (e.g. Double Spy mode)
     if (room.spies.length > 0) {
+      // Game continues with remaining spy!
       room.roundNumber += 1;
-      addLogMessage(room, `Casus yanlış tahmin etti! Masada hala ${room.spies.length} casus var. ${room.roundNumber}. Tur başlıyor...`);
+      addLogMessage(room, `${guessingPlayer.name} (CASUS) yanlış tahmin yaptı ("${wordGuess}") ve ELENDİ! Masada ${room.spies.length} casus daha var. ${room.roundNumber}. Tur başlıyor...`);
       room.currentTurnIndex = 0;
       room.votes = {};
       room.voteLogs = [];
@@ -226,8 +228,9 @@ function handleSpyGuessSubmit(roomCode, wordGuess) {
       room.spyGuess = null;
       room.phase = 'CLUE_PHASE';
     } else {
+      // All spies are eliminated! Civilians win!
       room.winner = 'NORMALS';
-      addLogMessage(room, `CASUS YANLIŞ TAHMİN ETTİ. Seçimi: "${wordGuess}", Gerçek Kelime: "${room.secretWord}". Tüm casuslar elendi, Siviller kazandı!`);
+      addLogMessage(room, `${guessingPlayer.name} (CASUS) YANLIŞ TAHMİN ETTİ ("${wordGuess}"). Gerçek Kelime: "${room.secretWord}". Tüm casuslar elendi, Siviller kazandı!`);
       room.phase = 'GAME_OVER';
     }
   }
@@ -439,7 +442,7 @@ io.on('connection', (socket) => {
   socket.on('SPY_GUESS_SUBMIT', ({ roomCode, wordGuess }) => {
     const room = findRoomBySocket(socket, roomCode);
     if (room) {
-      handleSpyGuessSubmit(room.roomCode, wordGuess);
+      handleSpyGuessSubmit(room.roomCode, socket.id, wordGuess);
     }
   });
 

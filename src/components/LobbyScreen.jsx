@@ -13,7 +13,7 @@ const ICON_MAP = { Utensils, Dog, Globe, Briefcase, Film, Box, Trophy };
 const GAME_MODES = [
   { id: 'classic', name: 'Klasik Mod', desc: 'Siviller kelimeyi bilir, casus kelimeyi tahmin etmeye çalışır.' },
   { id: 'timed', name: 'Zamana Karşı', desc: 'Her tur için belirlediğiniz süre sınırı.' },
-  { id: 'double', name: 'Çift Casus', desc: 'Oyun alanında 2 casus birbirini tanımadan yarışır.' }
+  { id: 'double', name: 'Kör Casus Modu', desc: 'Oyun alanında 2 casus birbirini tanımadan yarışır.' }
 ];
 
 const getRandomDefaultNickname = () => {
