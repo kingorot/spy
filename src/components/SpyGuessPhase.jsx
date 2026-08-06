@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, ShieldAlert, Check } from 'lucide-react';
+import { Target, ShieldAlert } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 
 export const SpyGuessPhase = ({
@@ -51,14 +51,13 @@ export const SpyGuessPhase = ({
               key={idx}
               type="button"
               onClick={() => { soundEngine.playClick(); setSelectedWord(word); }}
-              className={`p-2.5 rounded-xl border text-center font-black text-xs transition-all h-[60px] flex flex-col items-center justify-center gap-1 ${
+              className={`p-2.5 rounded-xl border text-center font-black text-xs transition-all h-[60px] flex flex-col items-center justify-center ${
                 isSelected
-                  ? 'bg-white text-zinc-950 border-white font-black scale-105'
+                  ? 'bg-white text-zinc-950 border-white scale-105 shadow-lg'
                   : 'bg-zinc-900 border-zinc-800 text-zinc-200 hover:border-zinc-500'
               }`}
             >
               <span>{word}</span>
-              {isSelected && <Check className="w-3.5 h-3.5 text-zinc-950" />}
             </button>
           );
         })}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 
 export const SpyVoluntaryGuessModal = ({
@@ -40,14 +40,13 @@ export const SpyVoluntaryGuessModal = ({
                 key={idx}
                 type="button"
                 onClick={() => { soundEngine.playClick(); setSelectedWord(word); }}
-                className={`p-2.5 rounded-xl border text-center font-black text-xs transition-all h-[55px] flex flex-col items-center justify-center gap-0.5 ${
+                className={`p-2.5 rounded-xl border text-center font-black text-xs transition-all h-[55px] flex flex-col items-center justify-center ${
                   isSelected
-                    ? 'bg-white text-zinc-950 border-white scale-105'
+                    ? 'bg-white text-zinc-950 border-white scale-105 shadow-lg'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-200 hover:border-zinc-500'
                 }`}
               >
                 <span>{word}</span>
-                {isSelected && <Check className="w-3 h-3 text-zinc-950" />}
               </button>
             );
           })}
