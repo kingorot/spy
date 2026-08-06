@@ -54,8 +54,20 @@ class NetworkService {
         this.peerId = this.socket.id;
       });
 
-      this.socket.on('STATE_UPDATE', (newState) => {
+      this.socket.on('STATE_UPDATE', (incomingState) => {
+        if (!incomingState) return;
+
+        // Guaranteed Client-Side Fallback Normalization
+        const newState = {
+          ...incomingState,
+          category: incomingState.category || incomingState.Category || 'food',
+          gameMode: incomingState.gameMode || incomingState.Mode || 'classic',
+          spyCount: incomingState.spyCount !== undefined ? incomingState.spyCount : (incomingState.Spies !== undefined ? incomingState.Spies : 1),
+          turnDuration: incomingState.turnDuration !== undefined ? incomingState.turnDuration : (incomingState.TurnDuration !== undefined ? incomingState.TurnDuration : 30)
+        };
+
         console.log('3. Diğer oyuncu yeni durumu sunucudan aldı:', newState.roomCode, 'category:', newState.category, 'gameMode:', newState.gameMode, 'spyCount:', newState.spyCount, 'turnDuration:', newState.turnDuration);
+
         this.state = newState;
         if (newState.roomCode) {
           this.roomCode = newState.roomCode;

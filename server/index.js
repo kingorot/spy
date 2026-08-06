@@ -46,10 +46,27 @@ function addLogMessage(room, text) {
   room.clueLogs.push(entry);
 }
 
+function normalizeRoomState(room) {
+  if (!room) return room;
+  room.category = room.category || room.Category || 'food';
+  room.gameMode = room.gameMode || room.Mode || 'classic';
+  room.spyCount = room.spyCount !== undefined ? room.spyCount : (room.Spies !== undefined ? room.Spies : 1);
+  room.turnDuration = room.turnDuration !== undefined ? room.turnDuration : (room.TurnDuration !== undefined ? room.TurnDuration : 30);
+
+  // Aliases for bulletproof compatibility
+  room.Category = room.category;
+  room.Mode = room.gameMode;
+  room.Spies = room.spyCount;
+  room.TurnDuration = room.turnDuration;
+  return room;
+}
+
 function broadcastState(roomCode) {
   const code = (roomCode || '').toUpperCase().trim();
-  const room = rooms.get(code);
+  let room = rooms.get(code);
   if (!room) return;
+
+  room = normalizeRoomState(room);
 
   console.log(`📢 Broadcasting state for room [${code}], Phase: ${room.phase}, category: ${room.category}, gameMode: ${room.gameMode}, spyCount: ${room.spyCount}, turnDuration: ${room.turnDuration}`);
 
@@ -275,7 +292,7 @@ io.on('connection', (socket) => {
     }
     const initialDuration = turnDuration !== undefined && turnDuration !== null ? (parseInt(turnDuration, 10) || 30) : 30;
 
-    const roomState = {
+    let roomState = {
       roomCode,
       hostId: socket.id,
       players: [{ id: socket.id, name: hostName || 'Ev Sahibi', isHost: true, isReady: true }],
@@ -300,7 +317,9 @@ io.on('connection', (socket) => {
       winner: null
     };
 
+    roomState = normalizeRoomState(roomState);
     rooms.set(roomCode, roomState);
+
     console.log(`🏠 Oda Oluşturuldu: [${roomCode}] Ev Sahibi: ${hostName}, category=${roomState.category}, gameMode=${roomState.gameMode}, spyCount=${roomState.spyCount}, turnDuration=${roomState.turnDuration}`);
 
     if (callback) callback({ roomCode, peerId: socket.id });
@@ -310,7 +329,7 @@ io.on('connection', (socket) => {
   // 2. JOIN ROOM (Client)
   socket.on('JOIN_ROOM', ({ roomCode, playerName }, callback) => {
     const code = (roomCode || '').toUpperCase().trim();
-    const room = rooms.get(code);
+    let room = rooms.get(code);
 
     if (!room) {
       if (callback) callback({ error: 'Oda bulunamadı!' });
@@ -318,6 +337,7 @@ io.on('connection', (socket) => {
     }
 
     socket.join(code);
+    room = normalizeRoomState(room);
 
     const existing = room.players.find(p => p.id === socket.id);
     if (!existing) {
@@ -340,7 +360,7 @@ io.on('connection', (socket) => {
     const roomCode = (data?.roomCode || data?.code || '').toUpperCase().trim();
     console.log('2. Sunucu hosttan isteği aldı, herkese dağıtıyor. RoomCode:', roomCode, 'Data:', data);
 
-    const room = findRoomBySocket(socket, roomCode);
+    let room = findRoomBySocket(socket, roomCode);
     if (!room) {
       console.error('❌ HATA: Sunucu oda bulamadı! RoomCode:', roomCode);
       return;
@@ -350,16 +370,23 @@ io.on('connection', (socket) => {
       socket.join(roomCode);
     }
 
-    if (data.category) room.category = data.category;
-    if (data.gameMode) room.gameMode = data.gameMode;
-    if (data.turnDuration !== undefined) room.turnDuration = Math.max(0, parseInt(data.turnDuration, 10) || 0);
+    const cat = data.category || data.Category;
+    const mode = data.gameMode || data.Mode;
+    const spies = data.spyCount !== undefined ? data.spyCount : data.Spies;
+    const duration = data.turnDuration !== undefined ? data.turnDuration : data.TurnDuration;
+
+    if (cat) room.category = cat;
+    if (mode) room.gameMode = mode;
+    if (duration !== undefined) room.turnDuration = Math.max(0, parseInt(duration, 10) || 0);
     if (data.customWords && Array.isArray(data.customWords)) room.customWords = data.customWords;
 
-    let targetSpyCount = data.spyCount !== undefined ? Math.max(1, parseInt(data.spyCount, 10) || 1) : room.spyCount;
+    let targetSpyCount = spies !== undefined ? Math.max(1, parseInt(spies, 10) || 1) : room.spyCount;
     if (room.gameMode === 'double') {
       targetSpyCount = Math.max(2, targetSpyCount);
     }
     room.spyCount = targetSpyCount;
+
+    room = normalizeRoomState(room);
 
     console.log(`⚙️ Room [${room.roomCode}] settings updated: category=${room.category}, gameMode=${room.gameMode}, spyCount=${room.spyCount}, turnDuration=${room.turnDuration}`);
 
@@ -376,11 +403,13 @@ io.on('connection', (socket) => {
   socket.on('START_GAME', (data) => {
     const roomCode = (data?.roomCode || data?.code || '').toUpperCase().trim();
     console.log('🚀 Sunucu START_GAME isteği aldı. RoomCode:', roomCode);
-    const room = findRoomBySocket(socket, roomCode);
+    let room = findRoomBySocket(socket, roomCode);
     if (!room) {
       console.error('❌ HATA: START_GAME için oda bulunamadı! RoomCode:', roomCode);
       return;
     }
+
+    room = normalizeRoomState(room);
 
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
     const secretWord = words[Math.floor(Math.random() * words.length)];
@@ -423,8 +452,10 @@ io.on('connection', (socket) => {
   // 5. RETURN TO LOBBY
   socket.on('RETURN_TO_LOBBY', (data) => {
     const roomCode = (data?.roomCode || data?.code || '').toUpperCase().trim();
-    const room = findRoomBySocket(socket, roomCode);
+    let room = findRoomBySocket(socket, roomCode);
     if (!room) return;
+
+    room = normalizeRoomState(room);
 
     const cleanPlayers = room.players.map(p => ({
       id: p.id,
@@ -433,7 +464,7 @@ io.on('connection', (socket) => {
       isReady: true
     }));
 
-    const freshLobbyState = {
+    let freshLobbyState = {
       roomCode: room.roomCode,
       hostId: room.hostId,
       players: cleanPlayers,
@@ -464,6 +495,7 @@ io.on('connection', (socket) => {
       winner: null
     };
 
+    freshLobbyState = normalizeRoomState(freshLobbyState);
     rooms.set(room.roomCode, freshLobbyState);
     console.log(`🔄 Room [${room.roomCode}] returned to lobby`);
     broadcastState(room.roomCode);
