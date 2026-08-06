@@ -70,6 +70,7 @@ export function App() {
 
   const myPlayer = roomState.players.find(p => p.id === myPlayerId) || { name: 'Oyuncu' };
   const isSpy = roomState.spies.includes(myPlayerId);
+  const isEliminated = (roomState.eliminatedPlayers || []).includes(myPlayerId);
   const accusedPlayer = roomState.players.find(p => p.id === roomState.accusedPlayerId);
   const isPlaying = roomState.phase !== 'LOBBY' && roomState.phase !== 'GAME_OVER';
 
@@ -103,6 +104,7 @@ export function App() {
               isSpy={isSpy}
               secretWord={roomState.secretWord}
               playerName={myPlayer.name}
+              isEliminated={isEliminated}
             />
 
             {roomState.phase === 'CLUE_PHASE' && (
@@ -164,7 +166,7 @@ export function App() {
       )}
 
       {/* Floating Bottom-Right Voluntary Guess Button for SPY */}
-      {isSpy && isPlaying && (
+      {isSpy && isPlaying && !isEliminated && (
         <button
           onClick={() => { soundEngine.playClick(); setIsSpyVoluntaryModalOpen(true); }}
           className="fixed bottom-4 right-4 z-40 px-4 py-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-xs sm:text-sm flex items-center justify-center shadow-2xl transition-all"

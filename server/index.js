@@ -98,7 +98,10 @@ function handleClueSubmit(roomCode, senderId, clueText) {
     };
     room.clueLogs.push(clueEntry);
 
-    if (room.currentTurnIndex < room.turnOrder.length - 1) {
+    // Filter out eliminated players from active turn progression
+    const activeTurnOrder = room.turnOrder.filter(pid => !(room.eliminatedPlayers || []).includes(pid));
+
+    if (room.currentTurnIndex < activeTurnOrder.length - 1) {
       room.currentTurnIndex += 1;
       broadcastState(code);
     } else {
@@ -137,7 +140,8 @@ function handleCastVote(roomCode, voterId, targetId) {
     room.voteLogs.push(voteEntry);
   }
 
-  if (Object.keys(room.votes).length >= room.players.length) {
+  const activeVoters = room.players.filter(p => !(room.eliminatedPlayers || []).includes(p.id));
+  if (Object.keys(room.votes).length >= activeVoters.length) {
     evaluateVotes(code);
   } else {
     broadcastState(code);
@@ -190,6 +194,9 @@ function evaluateVotes(roomCode) {
     addLogMessage(room, `${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} CASUS OLARAK YAKALANDI. Son tahmin hakkı açılıyor...`);
     room.phase = 'SPY_GUESS';
   } else {
+    if (!room.eliminatedPlayers.includes(accusedId)) {
+      room.eliminatedPlayers.push(accusedId);
+    }
     addLogMessage(room, `${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} masum bir SİVİL idi. Yanlış kişi elendi, Casus kazandı.`);
     room.winner = 'SPIES';
     room.phase = 'GAME_OVER';
@@ -214,13 +221,18 @@ function handleSpyGuessSubmit(roomCode, socketId, wordGuess) {
     addLogMessage(room, `CASUS DOĞRU TAHMİN ETTİ (${guessingPlayer.name}). Gizli kelime: "${room.secretWord}". Casuslar kazandı.`);
     room.phase = 'GAME_OVER';
   } else {
-    // Eliminate this specific spy from room.spies
-    room.spies = room.spies.filter(id => id !== guessingSpyId);
+    // Add to eliminatedPlayers list so they stay dead/spectator
+    if (!room.eliminatedPlayers.includes(guessingSpyId)) {
+      room.eliminatedPlayers.push(guessingSpyId);
+    }
 
-    if (room.spies.length > 0) {
+    // Remaining active spies count
+    const remainingSpies = room.spies.filter(id => !(room.eliminatedPlayers || []).includes(id));
+
+    if (remainingSpies.length > 0) {
       // Game continues with remaining spy!
       room.roundNumber += 1;
-      addLogMessage(room, `${guessingPlayer.name} (CASUS) yanlış tahmin yaptı ("${wordGuess}") ve ELENDİ! Masada ${room.spies.length} casus daha var. ${room.roundNumber}. Tur başlıyor...`);
+      addLogMessage(room, `${guessingPlayer.name} (CASUS) yanlış tahmin yaptı ("${wordGuess}") ve ELENDİ! Masada ${remainingSpies.length} casus daha var. ${room.roundNumber}. Tur başlıyor...`);
       room.currentTurnIndex = 0;
       room.votes = {};
       room.voteLogs = [];
@@ -264,6 +276,7 @@ io.on('connection', (socket) => {
       words: [],
       secretWord: '',
       spies: [],
+      eliminatedPlayers: [],
       turnOrder: [],
       currentTurnIndex: 0,
       roundNumber: 1,
@@ -354,6 +367,7 @@ io.on('connection', (socket) => {
     room.words = words;
     room.secretWord = secretWord;
     room.spies = spies;
+    room.eliminatedPlayers = [];
     room.turnOrder = turnOrder;
     room.currentTurnIndex = 0;
     room.roundNumber = 1;
@@ -400,6 +414,7 @@ io.on('connection', (socket) => {
       words: [],
       secretWord: '',
       spies: [],
+      eliminatedPlayers: [],
       turnOrder: [],
       currentTurnIndex: 0,
       roundNumber: 1,
