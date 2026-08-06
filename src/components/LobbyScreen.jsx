@@ -47,6 +47,19 @@ export const LobbyScreen = ({
   const [isGameModeDropdownOpen, setIsGameModeDropdownOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
 
+  // Helper function to ALWAYS emit COMPLETE, non-partial settings payload
+  const broadcastAllSettings = (override = {}) => {
+    const fullPayload = {
+      category: selectedCategory,
+      gameMode: selectedGameMode,
+      spyCount: selectedSpyCount,
+      turnDuration: selectedTurnDuration,
+      customWords: roomState.customWords || [],
+      ...override
+    };
+    onUpdateSettings(fullPayload);
+  };
+
   // Sync local state when roomState updates from server
   useEffect(() => {
     if (roomState.category) setSelectedCategory(roomState.category);
@@ -95,7 +108,7 @@ export const LobbyScreen = ({
     } else {
       setSelectedCategory(catId);
       setIsCategoryDropdownOpen(false);
-      onUpdateSettings({ category: catId, customWords: [] });
+      broadcastAllSettings({ category: catId, customWords: [] });
     }
   };
 
@@ -109,7 +122,7 @@ export const LobbyScreen = ({
       nextSpyCount = Math.max(2, Number(selectedSpyCount) || 2);
       setSelectedSpyCount(nextSpyCount);
     }
-    onUpdateSettings({ gameMode: modeId, spyCount: nextSpyCount });
+    broadcastAllSettings({ gameMode: modeId, spyCount: nextSpyCount });
   };
 
   const handleSpyCountChange = (val) => {
@@ -123,7 +136,7 @@ export const LobbyScreen = ({
       cnt = Math.max(2, cnt);
     }
     setSelectedSpyCount(cnt);
-    onUpdateSettings({ spyCount: cnt });
+    broadcastAllSettings({ spyCount: cnt });
   };
 
   const handleTurnDurationChange = (val) => {
@@ -135,7 +148,7 @@ export const LobbyScreen = ({
     if (isNaN(dur)) dur = 0;
     dur = Math.max(0, dur);
     setSelectedTurnDuration(dur);
-    onUpdateSettings({ turnDuration: dur });
+    broadcastAllSettings({ turnDuration: dur });
   };
 
   const currentCategoryObj = CATEGORIES.find(c => c.id === selectedCategory) || {
@@ -423,7 +436,7 @@ export const LobbyScreen = ({
             onClose={() => setIsCustomThemeModalOpen(false)}
             onSaveCustomTheme={(wordsArray) => {
               setSelectedCategory('custom');
-              onUpdateSettings({ category: 'custom', customWords: wordsArray });
+              broadcastAllSettings({ category: 'custom', customWords: wordsArray });
             }}
           />
         )}

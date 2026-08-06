@@ -50,8 +50,18 @@ function broadcastState(roomCode) {
   const code = (roomCode || '').toUpperCase().trim();
   const room = rooms.get(code);
   if (!room) return;
+
   console.log(`📢 Broadcasting state for room [${code}], Phase: ${room.phase}, Category: ${room.category}, Mode: ${room.gameMode}`);
+
+  // 1. Broadcast to Socket.IO room channel
   io.to(code).emit('STATE_UPDATE', room);
+
+  // 2. Direct broadcast to every player socket ID as bulletproof fallback
+  room.players.forEach(p => {
+    if (p.id) {
+      io.to(p.id).emit('STATE_UPDATE', room);
+    }
+  });
 }
 
 function findRoomBySocket(socket, roomCode) {
