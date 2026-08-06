@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronUp, Utensils, Dog, Globe, Briefcase, Film, Box, Trophy
 } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
+import { CustomThemeModal } from './CustomThemeModal';
 import { soundEngine } from '../utils/audio';
 
 const ICON_MAP = { Utensils, Dog, Globe, Briefcase, Film, Box, Trophy };
@@ -37,7 +38,7 @@ export const LobbyScreen = ({
   const [copied, setCopied] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isGameModeDropdownOpen, setIsGameModeDropdownOpen] = useState(false);
-  const [customWordsText, setCustomWordsText] = useState('');
+  const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
 
   // Auto-detect room parameter from URL share link
   useEffect(() => {
@@ -74,19 +75,12 @@ export const LobbyScreen = ({
   const handleCategorySelect = (catId) => {
     soundEngine.playClick();
     if (catId === 'custom') {
-      const words = customWordsText
-        .split(',')
-        .map(w => w.trim())
-        .filter(w => w.length > 0);
-      if (words.length < 20) {
-        alert('Özel kategori için en az 20 kelime girmelisiniz!');
-        return;
-      }
-      onUpdateSettings({ category: 'custom', customWords: words });
+      setIsCategoryDropdownOpen(false);
+      setIsCustomThemeModalOpen(true);
     } else {
       onUpdateSettings({ category: catId, customWords: [] });
+      setIsCategoryDropdownOpen(false);
     }
-    setIsCategoryDropdownOpen(false);
   };
 
   const handleGameModeSelect = (modeId) => {
@@ -108,7 +102,7 @@ export const LobbyScreen = ({
     const currentModeObj = GAME_MODES.find(m => m.id === roomState.gameMode) || GAME_MODES[0];
 
     return (
-      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4 relative">
         {/* Room Header */}
         <div className="glass-panel p-6 rounded-2xl border border-zinc-800 text-center space-y-4 shadow-xl">
           <h2 className="text-3xl sm:text-4xl font-black tracking-wider text-white">
@@ -200,27 +194,6 @@ export const LobbyScreen = ({
                         <span className="truncate">Özel Tema Ekle</span>
                       </button>
                     </div>
-
-                    {roomState.category === 'custom' && (
-                      <div className="space-y-2 pt-2 border-t border-zinc-900">
-                        <label className="block text-xs font-bold text-zinc-400">
-                          Özel Kelimeler (Min 20 kelime, virgülle ayırın)
-                        </label>
-                        <textarea
-                          value={customWordsText}
-                          onChange={(e) => setCustomWordsText(e.target.value)}
-                          placeholder="Elma, Armut, Muz, Çilek, Kiraz, Şeftali, Karpuz..."
-                          className="w-full h-20 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleCategorySelect('custom')}
-                          className="px-4 py-2 rounded-xl bg-white text-zinc-950 font-black text-xs shadow-md"
-                        >
-                          Özel Kelimeleri Kaydet
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -371,6 +344,17 @@ export const LobbyScreen = ({
             </div>
           )}
         </div>
+
+        {/* Custom Theme Word Input Modal */}
+        {isCustomThemeModalOpen && (
+          <CustomThemeModal
+            initialWords={roomState.customWords || []}
+            onClose={() => setIsCustomThemeModalOpen(false)}
+            onSaveCustomTheme={(wordsArray) => {
+              onUpdateSettings({ category: 'custom', customWords: wordsArray });
+            }}
+          />
+        )}
       </div>
     );
   }
