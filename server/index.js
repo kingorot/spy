@@ -59,6 +59,16 @@ function findRoomBySocket(socket, roomCode) {
   if (code && rooms.has(code)) {
     const room = rooms.get(code);
     socket.join(code);
+
+    // Auto re-link host / socket ID on reconnect
+    const hasSocketInRoom = room.players.some(p => p.id === socket.id);
+    if (!hasSocketInRoom && room.players.length > 0) {
+      const hostPlayer = room.players.find(p => p.isHost) || room.players[0];
+      if (hostPlayer) {
+        hostPlayer.id = socket.id;
+        room.hostId = socket.id;
+      }
+    }
     return room;
   }
 
@@ -332,7 +342,7 @@ io.on('connection', (socket) => {
     if (room.gameMode === 'double') {
       activeSpyCount = Math.max(2, activeSpyCount);
     }
-    activeSpyCount = Math.min(activeSpyCount, room.players.length);
+    activeSpyCount = Math.min(activeSpyCount, Math.max(1, playerIds.length - 1));
 
     const spies = shuffleArray(playerIds).slice(0, activeSpyCount);
     const turnOrder = shuffleArray(playerIds);
