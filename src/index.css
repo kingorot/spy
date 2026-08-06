@@ -24,13 +24,18 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* 3D Card Flip Perspective Container (Fixed height & no scroll jump) */
+/* 3D Card Flip Perspective Container (Strict strict height alignment) */
 .card-flip-container {
   perspective: 1000px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  position: relative;
+  display: block;
 }
 
 .card-flip-inner {
@@ -55,6 +60,7 @@ h1, h2, h3, h4, h5, h6 {
   backface-visibility: hidden;
   border-radius: 0.85rem;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .card-face-back {
@@ -64,11 +70,12 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Matrix Word Cards */
+/* Matrix Word Cards (Strict uniform height, zero translateY shifts) */
 .glass-card-matrix {
   background: #18181b;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  transform: none !important;
 }
 
 .glass-card-matrix:hover {

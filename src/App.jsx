@@ -4,6 +4,7 @@ import { LobbyScreen } from './components/LobbyScreen';
 import { PlayerRoleBadge } from './components/PlayerRoleBadge';
 import { CardGrid } from './components/CardGrid';
 import { CluePhase } from './components/CluePhase';
+import { ClueTable } from './components/ClueTable';
 import { VotingPhase } from './components/VotingPhase';
 import { SpyGuessPhase } from './components/SpyGuessPhase';
 import { GameLogPanel } from './components/GameLogPanel';
@@ -41,6 +42,11 @@ export function App() {
     networkService.startGame();
   };
 
+  const handleReturnToLobby = () => {
+    soundEngine.playClick();
+    networkService.returnToLobby();
+  };
+
   const handleSubmitClue = (clueText) => {
     networkService.submitClue(clueText);
   };
@@ -51,10 +57,6 @@ export function App() {
 
   const handleSpyGuessSubmit = (wordGuess) => {
     networkService.submitSpyGuess(wordGuess);
-  };
-
-  const handleNextRound = () => {
-    handleStartGame();
   };
 
   const handleLeaveRoom = () => {
@@ -108,6 +110,9 @@ export function App() {
               />
             )}
 
+            {/* Dedicated Clues Table Component on main screen */}
+            <ClueTable clueLogs={roomState.clueLogs} />
+
             {roomState.phase === 'VOTING_PHASE' && (
               <VotingPhase
                 players={roomState.players}
@@ -136,7 +141,7 @@ export function App() {
         )}
       </main>
 
-      {/* Floating Bottom-Right Voluntary Guess Button for SPY (Clean text: KELİMEYİ TAHMİN ET) */}
+      {/* Floating Bottom-Right Voluntary Guess Button for SPY */}
       {isSpy && isPlaying && (
         <button
           onClick={() => { soundEngine.playClick(); setIsSpyVoluntaryModalOpen(true); }}
@@ -162,7 +167,7 @@ export function App() {
           spies={roomState.spies}
           players={roomState.players}
           isHost={networkService.isHost}
-          onNextRound={handleNextRound}
+          onReturnToLobby={handleReturnToLobby}
         />
       )}
 

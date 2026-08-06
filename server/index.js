@@ -273,17 +273,27 @@ io.on('connection', (socket) => {
     broadcastState(roomCode);
   });
 
-  // 4. SUBMIT CLUE
+  // 4. RETURN TO LOBBY
+  socket.on('RETURN_TO_LOBBY', ({ roomCode }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.hostId !== socket.id) return;
+
+    room.phase = 'LOBBY';
+    addLogMessage(room, `Lobiye dönüldü.`);
+    broadcastState(roomCode);
+  });
+
+  // 5. SUBMIT CLUE
   socket.on('SUBMIT_CLUE', ({ roomCode, clueText }) => {
     handleClueSubmit(roomCode, socket.id, clueText);
   });
 
-  // 5. CAST VOTE
+  // 6. CAST VOTE
   socket.on('CAST_VOTE', ({ roomCode, targetId }) => {
     handleCastVote(roomCode, socket.id, targetId);
   });
 
-  // 6. SPY GUESS SUBMIT
+  // 7. SPY GUESS SUBMIT
   socket.on('SPY_GUESS_SUBMIT', ({ roomCode, wordGuess }) => {
     handleSpyGuessSubmit(roomCode, wordGuess);
   });

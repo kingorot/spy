@@ -33,15 +33,12 @@ class NetworkService {
 
   connectSocket() {
     if (!this.socket) {
-      // Connect to Render backend in production
       const customUrl = import.meta.env.VITE_SERVER_URL;
       const serverUrl = customUrl || (
         window.location.hostname === 'localhost'
           ? 'http://localhost:4000'
           : 'https://spy-1ehe.onrender.com'
       );
-
-      console.log('🔌 Connecting to Socket.IO backend at:', serverUrl);
 
       this.socket = io(serverUrl, {
         transports: ['websocket', 'polling']
@@ -58,10 +55,6 @@ class NetworkService {
         if (this.onStateChange) {
           this.onStateChange(this.state);
         }
-      });
-
-      this.socket.on('disconnect', () => {
-        console.log('❌ Socket.IO Sunucu Bağlantısı Kesildi');
       });
     }
   }
@@ -115,6 +108,12 @@ class NetworkService {
   startGame() {
     if (this.socket && this.roomCode) {
       this.socket.emit('START_GAME', { roomCode: this.roomCode });
+    }
+  }
+
+  returnToLobby() {
+    if (this.socket && this.roomCode) {
+      this.socket.emit('RETURN_TO_LOBBY', { roomCode: this.roomCode });
     }
   }
 

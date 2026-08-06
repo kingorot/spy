@@ -8,7 +8,7 @@ export const GameOverModal = ({
   spies,
   players,
   isHost,
-  onNextRound
+  onReturnToLobby
 }) => {
   useEffect(() => {
     soundEngine.playVictory();
@@ -46,15 +46,15 @@ export const GameOverModal = ({
 
         {isHost ? (
           <button
-            onClick={() => { soundEngine.playClick(); onNextRound(); }}
+            onClick={() => { soundEngine.playClick(); onReturnToLobby(); }}
             className="w-full py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base flex items-center justify-center gap-2 shadow-lg transition-all"
           >
             <RefreshCw className="w-4 h-4" />
-            <span>YENİ TUR</span>
+            <span>LOBİYE DÖN</span>
           </button>
         ) : (
           <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-400">
-            Ev sahibinin yeni turu başlatması bekleniyor...
+            Ev sahibinin lobiye dönmesi bekleniyor...
           </div>
         )}
       </div>
