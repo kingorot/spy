@@ -46,9 +46,8 @@ export const CustomThemeModal = ({
             <PlusCircle className="w-3.5 h-3.5" />
             <span>ÖZEL TEMA EKLE</span>
           </div>
-          <h2 className="text-xl font-black text-white">Özel Kelime Listesi</h2>
-          <p className="text-xs text-zinc-400">
-            Oyunda 20-kart matrisinde çıkmasını istediğiniz kelimeleri aralarına virgül koyarak yazın.
+          <p className="text-xs text-zinc-400 font-medium pt-1">
+            Kelimelerinizi aralarına virgül koyarak yazın.
           </p>
         </div>
 
@@ -83,7 +82,7 @@ export const CustomThemeModal = ({
               type="submit"
               className="flex-1 py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-xs shadow-lg cursor-pointer transition-all"
             >
-              Kaydet ve Temayı Seç
+              Kaydet
             </button>
           </div>
         </form>
