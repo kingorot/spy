@@ -399,15 +399,10 @@ export const LobbyScreen = ({
           {isHost ? (
             <button
               onClick={onStartGame}
-              disabled={roomState.players.length < 3}
-              className={`w-full py-3.5 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-all ${
-                roomState.players.length >= 3
-                  ? 'bg-white hover:bg-zinc-200 text-zinc-950 shadow-lg cursor-pointer'
-                  : 'bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed'
-              }`}
+              className="w-full py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
             >
               <Play className="w-5 h-5 fill-current" />
-              <span>{roomState.players.length >= 3 ? 'OYUNU BAŞLAT' : 'EN AZ 3 OYUNCU GEREKLİ'}</span>
+              <span>OYUNU BAŞLAT</span>
             </button>
           ) : (
             <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-center text-xs text-zinc-400 font-semibold">

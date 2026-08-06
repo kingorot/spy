@@ -208,7 +208,7 @@ function handleSpyGuessSubmit(roomCode, wordGuess) {
     // If there are still remaining spies in the room (e.g. Double Spy mode)
     if (room.spies.length > 0) {
       room.roundNumber += 1;
-      addLogMessage(room, `Casus yanlış tahmin etti! Ancak masada hala ${room.spies.length} casus var. ${room.roundNumber}. Tur başlıyor...`);
+      addLogMessage(room, `Casus yanlış tahmin etti! Masada hala ${room.spies.length} casus var. ${room.roundNumber}. Tur başlıyor...`);
       room.currentTurnIndex = 0;
       room.votes = {};
       room.voteLogs = [];
@@ -247,7 +247,7 @@ io.on('connection', (socket) => {
       customWords: customWords || [],
       spyCount: initialSpyCount,
       gameMode: gameMode || 'classic',
-      turnDuration: Number(turnDuration) || 30,
+      turnDuration: Number(turnDuration) !== undefined ? Number(turnDuration) : 30,
       words: [],
       secretWord: '',
       spies: [],
@@ -305,10 +305,10 @@ io.on('connection', (socket) => {
 
     if (data.category) room.category = data.category;
     if (data.gameMode) room.gameMode = data.gameMode;
-    if (data.turnDuration) room.turnDuration = Math.max(5, parseInt(data.turnDuration, 10) || 30);
+    if (data.turnDuration !== undefined) room.turnDuration = Math.max(0, parseInt(data.turnDuration, 10) || 0);
     if (data.customWords && Array.isArray(data.customWords)) room.customWords = data.customWords;
 
-    let targetSpyCount = data.spyCount ? Math.max(1, parseInt(data.spyCount, 10) || 1) : room.spyCount;
+    let targetSpyCount = data.spyCount !== undefined ? Math.max(1, parseInt(data.spyCount, 10) || 1) : room.spyCount;
     if (room.gameMode === 'double') {
       targetSpyCount = Math.max(2, targetSpyCount);
     }
@@ -332,7 +332,7 @@ io.on('connection', (socket) => {
     if (room.gameMode === 'double') {
       activeSpyCount = Math.max(2, activeSpyCount);
     }
-    activeSpyCount = Math.min(activeSpyCount, Math.max(1, playerIds.length - 1));
+    activeSpyCount = Math.min(activeSpyCount, room.players.length);
 
     const spies = shuffleArray(playerIds).slice(0, activeSpyCount);
     const turnOrder = shuffleArray(playerIds);
@@ -383,7 +383,7 @@ io.on('connection', (socket) => {
       customWords: room.customWords || [],
       spyCount: room.gameMode === 'double' ? Math.max(2, room.spyCount || 2) : (room.spyCount || 1),
       gameMode: room.gameMode || 'classic',
-      turnDuration: room.turnDuration || 30,
+      turnDuration: room.turnDuration !== undefined ? room.turnDuration : 30,
       words: [],
       secretWord: '',
       spies: [],

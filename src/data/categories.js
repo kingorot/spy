@@ -102,11 +102,20 @@ function shuffleArray(array) {
 
 export const getRandomWordsFromCategory = (categoryId, count = 20, customWords = []) => {
   let pool = [];
-  if (categoryId === 'custom' && customWords.length >= count) {
+  if (categoryId === 'custom' && customWords && customWords.length >= 1) {
     pool = Array.from(new Set(customWords));
   } else {
     const category = CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[0];
     pool = Array.from(new Set(category.words));
+  }
+
+  if (!pool || pool.length === 0) {
+    pool = CATEGORIES[0].words;
+  }
+
+  // Pad pool if words are fewer than count
+  while (pool.length < count) {
+    pool = [...pool, ...pool];
   }
 
   // Unbiased Fisher-Yates shuffle
