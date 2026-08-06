@@ -187,7 +187,7 @@ io.on('connection', (socket) => {
   console.log(`🔌 Yeni Bağlantı (Socket ID): ${socket.id}`);
 
   // 1. CREATE ROOM (Host)
-  socket.on('CREATE_ROOM', ({ hostName, category, spyCount, customWords }, callback) => {
+  socket.on('CREATE_ROOM', ({ hostName, category, spyCount, customWords, gameMode }, callback) => {
     const roomCode = generateRoomCode();
     socket.join(roomCode);
 
@@ -199,6 +199,7 @@ io.on('connection', (socket) => {
       category: category || 'food',
       customWords: customWords || [],
       spyCount: Number(spyCount) || 1,
+      gameMode: gameMode || 'classic',
       words: [],
       secretWord: '',
       spies: [],
@@ -247,15 +248,16 @@ io.on('connection', (socket) => {
     broadcastState(code);
   });
 
-  // 3. UPDATE ROOM SETTINGS (Category, Spy Count, Custom Words updated live in lobby)
-  socket.on('UPDATE_ROOM_SETTINGS', ({ roomCode, category, spyCount, customWords }) => {
+  // 3. UPDATE SETTINGS (In Lobby)
+  socket.on('UPDATE_SETTINGS', ({ roomCode, category, spyCount, customWords, gameMode }) => {
     const code = (roomCode || '').toUpperCase().trim();
     const room = rooms.get(code);
     if (!room) return;
 
     if (category !== undefined) room.category = category;
-    if (spyCount !== undefined) room.spyCount = Number(spyCount);
+    if (spyCount !== undefined) room.spyCount = Math.max(1, Math.min(Number(spyCount) || 1, room.players.length - 1 || 1));
     if (customWords !== undefined) room.customWords = customWords;
+    if (gameMode !== undefined) room.gameMode = gameMode;
 
     broadcastState(code);
   });
@@ -270,8 +272,9 @@ io.on('connection', (socket) => {
     const secretWord = words[Math.floor(Math.random() * words.length)];
     const playerIds = room.players.map(p => p.id);
 
+    const activeSpyCount = Math.max(1, Math.min(room.spyCount || 1, playerIds.length - 1));
     const shuffledForSpies = shuffleArray(playerIds);
-    const spies = shuffledForSpies.slice(0, room.spyCount);
+    const spies = shuffledForSpies.slice(0, activeSpyCount);
     const turnOrder = shuffleArray(playerIds);
 
     room.phase = 'CLUE_PHASE';
@@ -316,8 +319,9 @@ io.on('connection', (socket) => {
       players: cleanPlayers,
       phase: 'LOBBY',
       category: room.category || 'food',
-      customWords: [],
+      customWords: room.customWords || [],
       spyCount: room.spyCount || 1,
+      gameMode: room.gameMode || 'classic',
       words: [],
       secretWord: '',
       spies: [],
@@ -339,8 +343,6 @@ io.on('connection', (socket) => {
     };
 
     rooms.set(code, freshLobbyState);
-
-    // Broadcast clean fresh lobby state to ALL clients in room `code`
     io.to(code).emit('STATE_UPDATE', freshLobbyState);
   });
 

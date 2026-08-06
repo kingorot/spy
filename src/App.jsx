@@ -27,14 +27,18 @@ export function App() {
     };
   }, []);
 
-  const handleHostRoom = async (hostName, categoryId, spyCount, customWords = []) => {
-    const { roomCode, peerId } = await networkService.createRoom(hostName, categoryId, spyCount, customWords);
+  const handleHostRoom = async (hostName, categoryId, spyCount, customWords = [], gameMode = 'classic') => {
+    const { roomCode, peerId } = await networkService.createRoom(hostName, categoryId, spyCount, customWords, gameMode);
     setMyPlayerId(peerId);
   };
 
   const handleJoinRoom = async (roomCode, playerName) => {
     const { peerId } = await networkService.joinRoom(roomCode, playerName);
     setMyPlayerId(peerId);
+  };
+
+  const handleUpdateSettings = (settings) => {
+    networkService.updateSettings(settings);
   };
 
   const handleStartGame = () => {
@@ -87,6 +91,7 @@ export function App() {
             onHostRoom={handleHostRoom}
             onJoinRoom={handleJoinRoom}
             onStartGame={handleStartGame}
+            onUpdateSettings={handleUpdateSettings}
             isHost={networkService.isHost}
             myPlayerId={myPlayerId}
           />

@@ -16,6 +16,7 @@ class NetworkService {
       category: 'food',
       customWords: [],
       spyCount: 1,
+      gameMode: 'classic',
       words: [],
       secretWord: '',
       spies: [],
@@ -62,12 +63,12 @@ class NetworkService {
     }
   }
 
-  createRoom(hostName, categoryId = 'food', spyCount = 1, customWords = []) {
+  createRoom(hostName, categoryId = 'food', spyCount = 1, customWords = [], gameMode = 'classic') {
     return new Promise((resolve) => {
       this.connectSocket();
 
       const emitCreate = () => {
-        this.socket.emit('CREATE_ROOM', { hostName, category: categoryId, spyCount, customWords }, (res) => {
+        this.socket.emit('CREATE_ROOM', { hostName, category: categoryId, spyCount, customWords, gameMode }, (res) => {
           this.isHost = true;
           this.roomCode = res.roomCode;
           this.peerId = res.peerId;
@@ -108,10 +109,10 @@ class NetworkService {
     });
   }
 
-  updateRoomSettings(settings) {
+  updateSettings(settings) {
     const code = this.roomCode || this.state.roomCode;
     if (this.socket && code) {
-      this.socket.emit('UPDATE_ROOM_SETTINGS', { roomCode: code, ...settings });
+      this.socket.emit('UPDATE_SETTINGS', { roomCode: code, ...settings });
     }
   }
 
