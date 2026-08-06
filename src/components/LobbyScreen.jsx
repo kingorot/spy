@@ -1,545 +1,260 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import {
-  Users, Copy, Check, Play, PlusCircle, Crown, ArrowRight,
-  ChevronDown, ChevronUp, Utensils, Dog, Globe, Briefcase, Film, Box, Trophy
-} from 'lucide-react';
-import { CATEGORIES } from '../data/categories';
-import { CustomThemeModal } from './CustomThemeModal';
-import { soundEngine } from '../utils/audio';
+import { Copy, Check, Users, Crown, Play, UserPlus, ChevronDown, ChevronUp, History } from 'lucide-react';
+import { GAME_CATEGORIES, GAME_MODES } from '../data/categories';
+import { sounds } from '../utils/audio';
 
-const ICON_MAP = { Utensils, Dog, Globe, Briefcase, Film, Box, Trophy };
-
-const GAME_MODES = [
-  { id: 'classic', name: 'Klasik Mod', desc: 'Siviller kelimeyi bilir, casus kelimeyi tahmin etmeye çalışır.' },
-  { id: 'timed', name: 'Zamana Karşı', desc: 'Her tur için belirlediğiniz süre sınırı.' },
-  { id: 'double', name: 'Kör Casus Modu', desc: 'Oyun alanındaki casuslar birbirini tanımadan yarışır.' }
-];
-
-const getRandomDefaultNickname = () => {
-  const names = ['Ajan', 'Gölge', 'Dedektif', 'Gizem', 'Rüzgar', 'Şahin', 'Poyraz', 'Kartal'];
-  const name = names[Math.floor(Math.random() * names.length)];
-  const num = Math.floor(10 + Math.random() * 90);
-  return `${name}-${num}`;
-};
-
-export const LobbyScreen = ({
-  roomState,
-  onHostRoom,
-  onJoinRoom,
-  onStartGame,
-  onUpdateSettings,
-  isHost,
-  myPlayerId
-}) => {
-  const [mode, setMode] = useState('MAIN');
-  const [nickname, setNickname] = useState(getRandomDefaultNickname());
-  const [roomCodeInput, setRoomCodeInput] = useState('');
+export default function LobbyScreen({ roomState, myPlayerId, onUpdateOptions, onStartGame, onAddBot }) {
   const [copied, setCopied] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
 
-  // Local synced settings for instant responsiveness
-  const [selectedCategory, setSelectedCategory] = useState(roomState.category || 'food');
-  const [selectedGameMode, setSelectedGameMode] = useState(roomState.gameMode || 'classic');
-  const [selectedSpyCount, setSelectedSpyCount] = useState(roomState.spyCount !== undefined ? roomState.spyCount : 1);
-  const [selectedTurnDuration, setSelectedTurnDuration] = useState(roomState.turnDuration !== undefined ? roomState.turnDuration : 30);
+  if (!roomState) return null;
 
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [isGameModeDropdownOpen, setIsGameModeDropdownOpen] = useState(false);
-  const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
+  const isHost = roomState.hostId === myPlayerId;
+  const inviteUrl = `${window.location.origin}?room=${roomState.code}`;
 
-  // Helper function to ALWAYS emit COMPLETE, non-partial settings payload
-  const broadcastAllSettings = (override = {}) => {
-    const fullPayload = {
-      category: selectedCategory,
-      gameMode: selectedGameMode,
-      spyCount: selectedSpyCount,
-      turnDuration: selectedTurnDuration,
-      customWords: roomState.customWords || [],
-      ...override
-    };
-    onUpdateSettings(fullPayload);
-  };
-
-  // Sync local state when roomState updates from server
-  useEffect(() => {
-    if (roomState.category) setSelectedCategory(roomState.category);
-    if (roomState.gameMode) setSelectedGameMode(roomState.gameMode);
-    if (roomState.spyCount !== undefined) setSelectedSpyCount(roomState.spyCount);
-    if (roomState.turnDuration !== undefined) setSelectedTurnDuration(roomState.turnDuration);
-  }, [roomState.category, roomState.gameMode, roomState.spyCount, roomState.turnDuration]);
-
-  // Auto-detect room parameter from URL share link
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roomParam = params.get('room');
-    if (roomParam) {
-      setRoomCodeInput(roomParam.toUpperCase());
-      setMode('JOIN');
-    }
-  }, []);
-
-  const handleCopyLink = () => {
-    soundEngine.playClick();
-    const url = `${window.location.origin}?room=${roomState.roomCode}`;
-    navigator.clipboard.writeText(url);
+  const copyInviteLink = () => {
+    sounds.playClick();
+    navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleCreateSubmit = (e) => {
-    e.preventDefault();
-    if (!nickname.trim()) return;
-    soundEngine.playClick();
-    onHostRoom(nickname.trim(), 'food', 1, [], 'classic', 30);
+  const handleCategoryChange = (e) => {
+    sounds.playClick();
+    onUpdateOptions({ category: e.target.value });
   };
 
-  const handleJoinSubmit = (e) => {
-    e.preventDefault();
-    if (!nickname.trim() || !roomCodeInput.trim()) return;
-    soundEngine.playClick();
-    onJoinRoom(roomCodeInput.trim().toUpperCase(), nickname.trim());
+  const handleModeChange = (e) => {
+    sounds.playClick();
+    onUpdateOptions({ gameMode: e.target.value });
   };
 
-  const handleCategoryClick = (catId) => {
-    soundEngine.playClick();
-    if (catId === 'custom') {
-      setIsCategoryDropdownOpen(false);
-      setIsCustomThemeModalOpen(true);
-    } else {
-      setSelectedCategory(catId);
-      setIsCategoryDropdownOpen(false);
-      broadcastAllSettings({ category: catId, customWords: [] });
-    }
+  const handleSpyCountChange = (e) => {
+    sounds.playClick();
+    const val = parseInt(e.target.value) || 1;
+    onUpdateOptions({ spyCount: val });
   };
 
-  const handleGameModeClick = (modeId) => {
-    soundEngine.playClick();
-    setSelectedGameMode(modeId);
-    setIsGameModeDropdownOpen(false);
-
-    let nextSpyCount = selectedSpyCount;
-    if (modeId === 'double') {
-      nextSpyCount = Math.max(2, Number(selectedSpyCount) || 2);
-      setSelectedSpyCount(nextSpyCount);
-    }
-    broadcastAllSettings({ gameMode: modeId, spyCount: nextSpyCount });
+  const handleTimeLimitChange = (e) => {
+    sounds.playClick();
+    const val = parseInt(e.target.value) || 30;
+    onUpdateOptions({ turnTimeLimit: val });
   };
 
-  const handleSpyCountChange = (val) => {
-    if (val === '') {
-      setSelectedSpyCount('');
-      return;
-    }
-    let cnt = parseInt(val, 10);
-    if (isNaN(cnt)) cnt = 0;
-    if (selectedGameMode === 'double') {
-      cnt = Math.max(2, cnt);
-    }
-    setSelectedSpyCount(cnt);
-    broadcastAllSettings({ spyCount: cnt });
-  };
+  const playerCount = roomState.players.length;
+  const canStart = playerCount >= 3;
+  const isFastMode = roomState.gameMode === 'Hızlı Mod (Zaman Sınırlı)';
 
-  const handleTurnDurationChange = (val) => {
-    if (val === '') {
-      setSelectedTurnDuration('');
-      return;
-    }
-    let dur = parseInt(val, 10);
-    if (isNaN(dur)) dur = 0;
-    dur = Math.max(0, dur);
-    setSelectedTurnDuration(dur);
-    broadcastAllSettings({ turnDuration: dur });
-  };
+  return (
+    <div className="flex-1 flex flex-col items-center justify-start p-4 md:p-6 pb-24 max-w-xl mx-auto w-full gap-5">
+      {/* 1. Header Card with QR & Code */}
+      <div className="w-full bg-[#101116] border border-zinc-800 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-widest font-mono mb-3">
+          ODA: {roomState.code}
+        </h1>
 
-  const currentCategoryObj = CATEGORIES.find(c => c.id === selectedCategory) || {
-    id: 'food',
-    name: selectedCategory === 'custom' ? 'Özel Tema' : 'Yemekler & İçecekler',
-    icon: 'Utensils'
-  };
-  const CurrentCatIcon = ICON_MAP[currentCategoryObj.icon] || Box;
-  const currentModeObj = GAME_MODES.find(m => m.id === selectedGameMode) || GAME_MODES[0];
+        <button
+          onClick={copyInviteLink}
+          className="mb-5 flex items-center gap-2 bg-[#181921] hover:bg-[#22242e] text-zinc-200 border border-zinc-700/80 px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition active:scale-95 shadow-sm"
+        >
+          {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-zinc-400" />}
+          <span>{copied ? 'Link Kopyalandı' : 'Davet Linkini Kopyala'}</span>
+        </button>
 
-  if (roomState.roomCode) {
-    const roomUrl = `${window.location.origin}?room=${roomState.roomCode}`;
-
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4 relative">
-        {/* Room Header */}
-        <div className="glass-panel p-6 rounded-2xl border border-zinc-800 text-center space-y-4 shadow-xl">
-          <h2 className="text-3xl sm:text-4xl font-black tracking-wider text-white">
-            ODA: <span className="font-mono text-zinc-100">{roomState.roomCode}</span>
-          </h2>
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-bold transition-all"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-              {copied ? "Kopyalandı!" : "Davet Linkini Kopyala"}
-            </button>
-          </div>
-
-          <div className="inline-block bg-white p-2.5 rounded-xl shadow-lg border border-zinc-800">
-            <QRCodeSVG value={roomUrl} size={95} />
-          </div>
+        {/* QR Code display */}
+        <div className="p-3 bg-white rounded-xl shadow-lg border border-zinc-300">
+          <QRCodeSVG value={inviteUrl} size={130} level="M" />
         </div>
+      </div>
 
-        {/* Room Settings */}
-        <div className="glass-panel p-5 rounded-2xl border border-zinc-800 space-y-4 shadow-xl">
-          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-800 pb-2">
-            OYUN AYARLARI
-          </h3>
+      {/* 2. OYUN AYARLARI Card */}
+      <div className="w-full bg-[#101116] border border-zinc-800 rounded-2xl p-5 shadow-xl text-left">
+        <h2 className="text-xs font-extrabold text-zinc-400 tracking-widest uppercase font-mono mb-4 border-b border-zinc-800 pb-2">
+          OYUN AYARLARI
+        </h2>
 
-          {/* Collapsible Category Selection Dropdown Bar */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-zinc-300">Kategori</label>
-
-            {isHost ? (
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
-                    setIsGameModeDropdownOpen(false);
-                  }}
-                  className="w-full p-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 flex items-center justify-between transition-all cursor-pointer shadow-md"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <CurrentCatIcon className="w-4 h-4 text-white flex-shrink-0" />
-                    <span className="font-black text-sm text-white truncate">
-                      {currentCategoryObj.name}
-                    </span>
-                  </div>
-                  {isCategoryDropdownOpen ? (
-                    <ChevronUp className="w-4 h-4 text-zinc-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-zinc-400" />
-                  )}
-                </button>
-
-                {/* Expanded Category Options */}
-                {isCategoryDropdownOpen && (
-                  <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 shadow-2xl animate-in fade-in slide-in-from-top-2">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {CATEGORIES.map((cat) => {
-                        const IconComponent = ICON_MAP[cat.icon] || Box;
-                        const isSelected = selectedCategory === cat.id;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => handleCategoryClick(cat.id)}
-                            className={`p-2.5 rounded-xl border text-left flex items-center gap-2 text-xs font-bold transition-all ${
-                              isSelected
-                                ? 'bg-white text-zinc-950 border-white font-black shadow-md'
-                                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700'
-                            }`}
-                          >
-                            <IconComponent className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="truncate">{cat.name}</span>
-                          </button>
-                        );
-                      })}
-
-                      <button
-                        type="button"
-                        onClick={() => handleCategoryClick('custom')}
-                        className={`p-2.5 rounded-xl border text-left flex items-center gap-2 text-xs font-bold transition-all ${
-                          selectedCategory === 'custom'
-                            ? 'bg-white text-zinc-950 border-white font-black shadow-md'
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700'
-                        }`}
-                      >
-                        <PlusCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">Özel Tema Ekle</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center gap-2 text-xs font-bold text-zinc-200">
-                <CurrentCatIcon className="w-4 h-4 text-zinc-400" />
-                <span>{currentCategoryObj.name}</span>
-              </div>
-            )}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              Kategori
+            </label>
+            <select
+              value={roomState.category}
+              onChange={handleCategoryChange}
+              disabled={!isHost}
+              className="w-full bg-[#171820] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 font-semibold focus:outline-none focus:border-white transition disabled:opacity-60 cursor-pointer"
+            >
+              {Object.keys(GAME_CATEGORIES).map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Collapsible Game Mode Selection Dropdown Bar */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-zinc-300">Oyun Modu</label>
-
-            {isHost ? (
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsGameModeDropdownOpen(!isGameModeDropdownOpen);
-                    setIsCategoryDropdownOpen(false);
-                  }}
-                  className="w-full p-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 flex items-center justify-between transition-all cursor-pointer shadow-md"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-black text-sm text-white truncate">
-                      {currentModeObj.name}
-                    </span>
-                  </div>
-                  {isGameModeDropdownOpen ? (
-                    <ChevronUp className="w-4 h-4 text-zinc-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-zinc-400" />
-                  )}
-                </button>
-
-                {/* Expanded Game Mode Options */}
-                {isGameModeDropdownOpen && (
-                  <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 shadow-2xl animate-in fade-in slide-in-from-top-2">
-                    {GAME_MODES.map((m) => {
-                      const isSelected = selectedGameMode === m.id;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => handleGameModeClick(m.id)}
-                          className={`w-full p-3 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? 'bg-white text-zinc-950 border-white font-black shadow-md'
-                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700'
-                          }`}
-                        >
-                          <div className="font-black text-xs">{m.name}</div>
-                          <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-zinc-700 font-semibold' : 'text-zinc-500'}`}>
-                            {m.desc}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
-                {currentModeObj.name}
-              </div>
-            )}
+          <div>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              Oyun Modu
+            </label>
+            <select
+              value={roomState.gameMode}
+              onChange={handleModeChange}
+              disabled={!isHost}
+              className="w-full bg-[#171820] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 font-semibold focus:outline-none focus:border-white transition disabled:opacity-60 cursor-pointer"
+            >
+              {GAME_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Timed Mode Duration Input */}
-          {selectedGameMode === 'timed' && (
-            <div className="space-y-1.5 pt-1 border-t border-zinc-850">
-              <label className="block text-xs font-bold text-zinc-300">
+          {/* Time limit text input for Hızlı Mod as requested */}
+          {isFastMode && (
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 Tur Süresi (Saniye)
               </label>
+              <input
+                type="number"
+                min={5}
+                max={300}
+                value={roomState.turnTimeLimit || 30}
+                onChange={handleTimeLimitChange}
+                disabled={!isHost}
+                placeholder="Örn: 30"
+                className="w-full bg-[#171820] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 font-bold focus:outline-none focus:border-white transition disabled:opacity-60 font-mono"
+              />
+            </div>
+          )}
 
-              {isHost ? (
-                <input
-                  type="number"
-                  min={0}
-                  max={300}
-                  value={selectedTurnDuration}
-                  onChange={(e) => handleTurnDurationChange(e.target.value)}
-                  placeholder="0"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
-                />
-              ) : (
-                <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
-                  {selectedTurnDuration} Saniye
+          <div>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              Casus Sayısı
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={5}
+              value={roomState.spyCount}
+              onChange={handleSpyCountChange}
+              disabled={!isHost}
+              className="w-full bg-[#171820] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 font-bold focus:outline-none focus:border-white transition disabled:opacity-60 font-mono"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Oyuncular Card */}
+      <div className="w-full bg-[#101116] border border-zinc-800 rounded-2xl p-5 shadow-xl text-left">
+        <div className="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-white" />
+            <h2 className="text-xs font-extrabold text-zinc-300 tracking-widest uppercase font-mono">
+              Oyuncular ({playerCount})
+            </h2>
+          </div>
+          {isHost && (
+            <button
+              onClick={() => {
+                sounds.playClick();
+                onAddBot();
+              }}
+              className="flex items-center gap-1 bg-[#181a24] hover:bg-[#232533] text-zinc-200 border border-zinc-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>+ Bot Ekle</span>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {roomState.players.map((p) => {
+            const initial = p.name.charAt(0).toUpperCase();
+            return (
+              <div
+                key={p.id}
+                className="flex items-center gap-3 bg-[#16171f] border border-zinc-800 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-zinc-200 shadow-sm"
+              >
+                <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-extrabold text-white uppercase font-mono">
+                  {initial}
                 </div>
+                <span className="truncate flex-1">{p.name}</span>
+                {p.isHost && (
+                  <Crown className="w-4 h-4 text-white shrink-0" title="Oda Sahibi" />
+                )}
+                {p.isBot && (
+                  <span className="text-[10px] bg-zinc-800 text-zinc-400 border border-zinc-700 px-1.5 py-0.5 rounded font-mono">
+                    BOT
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. Main Action Start Button */}
+      <div className="w-full">
+        {canStart ? (
+          isHost ? (
+            <button
+              onClick={() => {
+                sounds.playClick();
+                onStartGame();
+              }}
+              className="w-full bg-white hover:bg-zinc-200 text-black font-extrabold py-3.5 px-6 rounded-xl transition flex items-center justify-center gap-2 text-base shadow-xl active:scale-[0.99]"
+            >
+              <Play className="w-5 h-5 text-black fill-black" />
+              <span>OYUNU BAŞLAT</span>
+            </button>
+          ) : (
+            <div className="w-full bg-[#14151c] text-zinc-400 border border-zinc-800 font-semibold py-3.5 px-6 rounded-xl text-center text-sm shadow-inner">
+              Oda sahibinin oyunu başlatması bekleniyor...
+            </div>
+          )
+        ) : (
+          <button
+            disabled
+            className="w-full bg-[#13141a] text-zinc-500 border border-zinc-800/80 font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed opacity-80"
+          >
+            <span>▶ EN AZ 3 OYUNCU GEREKLİ</span>
+          </button>
+        )}
+      </div>
+
+      {/* Floating Bottom Left GEÇMİŞ Log Panel */}
+      <div className="fixed bottom-4 left-4 z-30 max-w-xs w-full">
+        <div className="bg-[#0e0f14]/95 backdrop-blur border border-zinc-800 rounded-xl shadow-2xl overflow-hidden transition-all duration-200">
+          <div
+            onClick={() => setShowHistory(!showHistory)}
+            className="px-3.5 py-2 bg-[#15161d] border-b border-zinc-800 flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 font-mono">
+              <History className="w-3.5 h-3.5 text-zinc-400" />
+              <span>GEÇMİŞ ({roomState.logs.length})</span>
+            </div>
+            {showHistory ? <ChevronDown className="w-3.5 h-3.5 text-zinc-400" /> : <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />}
+          </div>
+
+          {showHistory && (
+            <div className="p-3 max-h-36 overflow-y-auto space-y-1.5 text-xs font-mono">
+              {roomState.logs.length === 0 ? (
+                <p className="text-zinc-500 italic">Henüz geçmiş kaydı yok.</p>
+              ) : (
+                roomState.logs.slice(-10).map((log) => (
+                  <div key={log.id} className="text-zinc-300 flex items-start gap-1.5">
+                    <span className="text-zinc-600 text-[10px] shrink-0 mt-0.5">{log.timestamp}</span>
+                    <span className="break-words">{log.text}</span>
+                  </div>
+                ))
               )}
             </div>
           )}
-
-          {/* Casus Sayısı Input */}
-          <div className="space-y-1.5 pt-1 border-t border-zinc-850">
-            <label className="block text-xs font-bold text-zinc-300">
-              Casus Sayısı
-            </label>
-
-            {isHost ? (
-              <input
-                type="number"
-                min={selectedGameMode === 'double' ? 2 : 1}
-                max={Math.max(1, roomState.players.length - 1)}
-                value={selectedSpyCount}
-                onChange={(e) => handleSpyCountChange(e.target.value)}
-                placeholder="1"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
-              />
-            ) : (
-              <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
-                {selectedSpyCount} Casus
-              </div>
-            )}
-          </div>
         </div>
-
-        {/* Players List */}
-        <div className="glass-panel p-5 rounded-2xl border border-zinc-800 space-y-3 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-zinc-200 font-bold text-sm">
-              <Users className="w-4 h-4 text-zinc-400" />
-              <span>Oyuncular ({roomState.players.length})</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {roomState.players.map((p) => {
-              const isMe = p.id === myPlayerId;
-              return (
-                <div
-                  key={p.id}
-                  className={`p-3 rounded-xl border flex items-center justify-between gap-2 ${
-                    isMe
-                      ? 'bg-zinc-900 border-zinc-600 text-white'
-                      : 'bg-zinc-900/60 border-zinc-800/80 text-zinc-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-black text-zinc-200">
-                      {p.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-xs font-bold truncate">
-                      {p.name} {p.isHost && <Crown className="w-3 h-3 text-amber-400 inline" />}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Start Game */}
-          {isHost ? (
-            <button
-              onClick={onStartGame}
-              disabled={roomState.players.length < 3}
-              className={`w-full py-3.5 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-all ${
-                roomState.players.length >= 3
-                  ? 'bg-white hover:bg-zinc-200 text-zinc-950 shadow-lg cursor-pointer'
-                  : 'bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed'
-              }`}
-            >
-              <Play className="w-5 h-5 fill-current" />
-              <span>{roomState.players.length >= 3 ? 'OYUNU BAŞLAT' : 'EN AZ 3 OYUNCU GEREKLİ'}</span>
-            </button>
-          ) : (
-            <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-center text-xs text-zinc-400 font-semibold">
-              Ev sahibinin oyunu başlatması bekleniyor...
-            </div>
-          )}
-        </div>
-
-        {/* Custom Theme Word Input Modal */}
-        {isCustomThemeModalOpen && (
-          <CustomThemeModal
-            initialWords={roomState.customWords || []}
-            onClose={() => setIsCustomThemeModalOpen(false)}
-            onSaveCustomTheme={(wordsArray) => {
-              setSelectedCategory('custom');
-              broadcastAllSettings({ category: 'custom', customWords: wordsArray });
-            }}
-          />
-        )}
       </div>
-    );
-  }
-
-  return (
-    <div className="max-w-md mx-auto px-4 py-8 space-y-4">
-      <div className="glass-panel p-8 rounded-3xl border border-zinc-800 text-center space-y-6 shadow-2xl">
-        <h2 className="text-4xl font-black tracking-widest text-white uppercase">SPY</h2>
-
-        {mode === 'MAIN' && (
-          <div className="space-y-3">
-            <button
-              onClick={() => { soundEngine.playClick(); setMode('CREATE'); }}
-              className="w-full py-4 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
-            >
-              <PlusCircle className="w-5 h-5" />
-              <span>Oda Oluştur</span>
-            </button>
-
-            <button
-              onClick={() => { soundEngine.playClick(); setMode('JOIN'); }}
-              className="w-full py-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 font-black text-base flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Users className="w-5 h-5 text-zinc-400" />
-              <span>Lobiye Katıl</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {mode === 'CREATE' && (
-        <form onSubmit={handleCreateSubmit} className="glass-panel p-6 rounded-2xl border border-zinc-800 space-y-4 shadow-2xl">
-          <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-            <h3 className="font-bold text-sm uppercase text-zinc-200">Oda Kur</h3>
-            <button type="button" onClick={() => setMode('MAIN')} className="text-xs text-zinc-400">Geri</button>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-zinc-400 mb-1">Takma Adın</label>
-            <input
-              type="text"
-              required
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="Nickname"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-sm font-semibold focus:outline-none focus:border-zinc-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-          >
-            <span>Oda Oluştur</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
-      )}
-
-      {mode === 'JOIN' && (
-        <form onSubmit={handleJoinSubmit} className="glass-panel p-6 rounded-2xl border border-zinc-800 space-y-4 shadow-2xl">
-          <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-            <h3 className="font-bold text-sm uppercase text-zinc-200">Lobiye Katıl</h3>
-            <button type="button" onClick={() => setMode('MAIN')} className="text-xs text-zinc-400">Geri</button>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-zinc-400 mb-1">Takma Adın</label>
-            <input
-              type="text"
-              required
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="Nickname"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-sm font-semibold focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-zinc-400 mb-1">Oda Kodu</label>
-            <input
-              type="text"
-              required
-              maxLength={4}
-              value={roomCodeInput}
-              onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-              placeholder="AB12"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-100 font-mono text-center font-black tracking-widest text-xl focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-          >
-            <span>Katıl</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
-      )}
     </div>
   );
-};
+}

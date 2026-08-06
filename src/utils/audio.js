@@ -1,11 +1,12 @@
-// Web Audio API serious UI audio synthesizer for SPY game
-class SoundEngine {
+// Deep, tactile, bassy sound synthesizer (Tok sesler) using Web Audio API
+
+class SoundEffects {
   constructor() {
     this.ctx = null;
-    this.isMuted = false;
+    this.muted = false;
   }
 
-  initContext() {
+  init() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
@@ -18,164 +19,135 @@ class SoundEngine {
   }
 
   toggleMute() {
-    this.isMuted = !this.isMuted;
-    return this.isMuted;
+    this.muted = !this.muted;
+    return this.muted;
   }
 
-  // Sleek, muted tactile switch click
+  // Deep tactile "tok" button click (warm low pitch)
   playClick() {
-    if (this.isMuted) return;
-    this.initContext();
+    if (this.muted) return;
+    this.init();
     if (!this.ctx) return;
 
-    try {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(350, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.018);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.04);
 
-      gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.018);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.018);
-    } catch (e) {
-      // Audio context failsafe
-    }
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.04);
   }
 
-  // Deep, warm, full-bodied (tok) pulse tone for clue submission ("Gönder" button)
-  playClueGiven() {
-    if (this.isMuted) return;
-    this.initContext();
+  // Deep solid clue submission thud
+  playClue() {
+    if (this.muted) return;
+    this.init();
     if (!this.ctx) return;
 
-    try {
-      const now = this.ctx.currentTime;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.08);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.09);
+  }
+
+  // Soft low turn notification (tok notification)
+  playTurn() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    
+    // Low pulse 1
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(150, now);
+    gain1.gain.setValueAtTime(0.3, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc1.connect(gain1);
+    gain1.connect(this.ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.1);
+
+    // Low pulse 2
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(200, now + 0.08);
+    gain2.gain.setValueAtTime(0.3, now + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc2.connect(gain2);
+    gain2.connect(this.ctx.destination);
+    osc2.start(now + 0.08);
+    osc2.stop(now + 0.2);
+  }
+
+  // Deep warm low-mid victory chords
+  playWin() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const freqs = [130.81, 164.81, 196.00, 261.63]; // C3, E3, G3, C4
+    freqs.forEach((freq, i) => {
+      const now = this.ctx.currentTime + i * 0.08;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      const filter = this.ctx.createBiquadFilter();
 
-      // Deep warm low frequency (160Hz -> 100Hz) - zero high pitch / zero tiz
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.exponentialRampToValueAtTime(100, now + 0.12);
-
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(320, now);
-
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.22, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.12);
-    } catch (e) {
-      // Audio context failsafe
-    }
-  }
-
-  // Serious dark target lock sound
-  playVoteCast() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(55, now + 0.06);
-
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.06);
-    } catch (e) {
-      // Audio context failsafe
-    }
-  }
-
-  // Serious low spy chord resolution
-  playVictory() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const chord = [130.81, 155.56, 196.00];
-
-      chord.forEach((freq) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const filter = this.ctx.createBiquadFilter();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now);
-
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800, now);
-
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.12, now + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-
-        osc.start(now);
-        osc.stop(now + 1.2);
-      });
-    } catch (e) {
-      // Audio context failsafe
-    }
-  }
-
-  // Dark spy warning pulse
-  playSpyAlert() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
-
-      gain.gain.setValueAtTime(0.15, now);
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.3, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-
       osc.start(now);
       osc.stop(now + 0.25);
-    } catch (e) {
-      // Audio context failsafe
-    }
+    });
+  }
+
+  // Deep sub-bass thud for game over / loss
+  playLose() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
   }
 }
 
-export const soundEngine = new SoundEngine();
+export const sounds = new SoundEffects();

@@ -1,31 +1,62 @@
 import express from 'express';
-import http from 'http';
+import { createServer } from 'http';
 import { Server } from 'socket.io';
-import cors from 'cors';
-import { CATEGORIES, getRandomWordsFromCategory } from '../src/data/categories.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+const httpServer = createServer(app);
 
-const server = http.createServer(app);
-const io = new Server(server, {
+const io = new Server(httpServer, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST'],
+  },
 });
 
-// Robust Fisher-Yates Shuffle for 100% unbiased randomness
-function shuffleArray(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
+// Categories & Word pools
+const CATEGORIES = {
+  "Yemekler": [
+    "Mantı", "Kokoreç", "Karnıyarık", "Ayran", "Baklava",
+    "Tavuk Döner", "Künefe", "İçli Köfte", "Kuzu Tandır", "Menemen",
+    "Tiramisu", "Tantuni", "Falafel", "Çiğ Köfte", "Kuru Fasulye",
+    "Gözleme", "Ramen", "Kumpir", "Cağ Kebabı", "Türk Kahvesi"
+  ],
+  "Ülkeler & Şehirler": [
+    "Türkiye", "Japonya", "İtalya", "Almanya", "Fransa",
+    "İngiltere", "Mısır", "Brezilya", "Kanada", "Avustralya",
+    "İstanbul", "Roma", "Tokyo", "Paris", "New York",
+    "Londra", "Pekin", "Barselona", "Kahire", "Amsterdam"
+  ],
+  "Meslekler": [
+    "Doktor", "Öğretmen", "Mühendis", "Aşçı", "Pilot",
+    "Polis", "İtfaiyeci", "Avukat", "Mimar", "Ressam",
+    "Gazeteci", "Berber", "Çiftçi", "Garson", "Eczacı",
+    "Şoför", "Dedektif", "Bilim İnsanı", "Kaptan", "Yazılımcı"
+  ],
+  "Hayvanlar": [
+    "Aslan", "Kaplan", "Kartal", "Yunus", "Kurt",
+    "Panda", "Zürafa", "Fil", "Penguen", "Kedi",
+    "Köpek", "Ayı", "Papağan", "Timsah", "Baykuş",
+    "Kanguru", "Zebra", "Koala", "Çita", "Bukalemun"
+  ],
+  "Filmler & Diziler": [
+    "Harry Potter", "Yüzüklerin Efendisi", "Matrix", "Inception", "Interstellar",
+    "Star Wars", "Gladiator", "Titanic", "Avatar", "Joker",
+    "Breaking Bad", "Game of Thrones", "Sherlock", "Stranger Things", "Squid Game",
+    "The Office", "Friends", "La Casa de Papel", "Dark", "Peaky Blinders"
+  ],
+  "Eşyalar": [
+    "Telefon", "Bilgisayar", "Kulaklık", "Televizyon", "Buzdolabı",
+    "Kahve Makinesi", "Kamera", "Saat", "Piyano", "Gitar",
+    "Bisiklet", "Araba", "Ütü", "Süpürge", "Mikrodalga",
+    "Lamba", "Projeksiyon", "Tablet", "Drone", "Akıllı Saat"
+  ]
+};
 
-// Active rooms in memory: roomCode -> roomState
 const rooms = new Map();
 
 function generateRoomCode() {
@@ -37,519 +68,485 @@ function generateRoomCode() {
   return code;
 }
 
-function addLogMessage(room, text) {
-  const entry = {
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    senderName: 'Sistem',
-    text
+function getRandomNickname() {
+  const prefixes = ['Gölge', 'Dedektif', 'Şahin', 'Ajan', 'Poyraz', 'Atlas', 'Rüzgar', 'Kobra', 'Kaplan', 'Kartal'];
+  const num = Math.floor(Math.random() * 90) + 10;
+  return `${prefixes[Math.floor(Math.random() * prefixes.length)]}-${num}`;
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function addRoomLog(room, text, type = 'info') {
+  const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const logItem = {
+    id: Date.now() + Math.random().toString(),
+    text,
+    timestamp,
+    type
   };
-  room.clueLogs.push(entry);
+  room.logs.push(logItem);
+  if (room.logs.length > 50) room.logs.shift();
+  return logItem;
 }
 
-function normalizeRoomState(room) {
-  if (!room) return room;
-  room.category = room.category || room.Category || 'food';
-  room.gameMode = room.gameMode || room.Mode || 'classic';
-  room.spyCount = room.spyCount !== undefined ? room.spyCount : (room.Spies !== undefined ? room.Spies : 1);
-  room.turnDuration = room.turnDuration !== undefined ? room.turnDuration : (room.TurnDuration !== undefined ? room.TurnDuration : 30);
-
-  // Aliases for bulletproof compatibility
-  room.Category = room.category;
-  room.Mode = room.gameMode;
-  room.Spies = room.spyCount;
-  room.TurnDuration = room.turnDuration;
-  return room;
-}
-
-function broadcastState(roomCode) {
-  const code = (roomCode || '').toUpperCase().trim();
-  let room = rooms.get(code);
-  if (!room) return;
-
-  room = normalizeRoomState(room);
-
-  console.log(`📢 Broadcasting state for room [${code}], Phase: ${room.phase}, category: ${room.category}, gameMode: ${room.gameMode}, spyCount: ${room.spyCount}, turnDuration: ${room.turnDuration}`);
-
-  // 1. Broadcast to Socket.IO room channel
-  io.to(code).emit('STATE_UPDATE', room);
-
-  // 2. Direct broadcast to every player socket ID in room.players as bulletproof fallback
-  room.players.forEach(p => {
-    if (p.id) {
-      io.to(p.id).emit('STATE_UPDATE', room);
-    }
-  });
-}
-
-function findRoomBySocket(socket, roomCode) {
-  const code = (roomCode || '').toUpperCase().trim();
-  if (code && rooms.has(code)) {
-    const room = rooms.get(code);
-    socket.join(code);
-
-    // Auto re-link host / socket ID on reconnect
-    const hasSocketInRoom = room.players.some(p => p.id === socket.id);
-    if (!hasSocketInRoom && room.players.length > 0) {
-      const hostPlayer = room.players.find(p => p.isHost) || room.players[0];
-      if (hostPlayer) {
-        hostPlayer.id = socket.id;
-        room.hostId = socket.id;
-      }
-    }
-    return room;
-  }
-
-  // Fallback: search for room containing socket.id
-  for (const [c, room] of rooms.entries()) {
-    if (room.players.some(p => p.id === socket.id)) {
-      socket.join(c);
-      return room;
-    }
-  }
-
-  return null;
-}
-
-function handleClueSubmit(roomCode, senderId, clueText) {
-  const code = (roomCode || '').toUpperCase().trim();
-  const room = rooms.get(code);
-  if (!room) return;
-
-  const player = room.players.find(p => p.id === senderId);
-  if (player) {
-    const clueEntry = {
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      senderName: player.name,
-      senderId: player.id,
-      text: clueText || 'İpucunu verdi'
-    };
-    room.clueLogs.push(clueEntry);
-
-    // Filter out eliminated players from active turn progression
-    const activeTurnOrder = room.turnOrder.filter(pid => !(room.eliminatedPlayers || []).includes(pid));
-
-    if (room.currentTurnIndex < activeTurnOrder.length - 1) {
-      room.currentTurnIndex += 1;
-      broadcastState(code);
-    } else {
-      room.phase = 'VOTING_PHASE';
-      addLogMessage(room, `${room.roundNumber}. Tur Tamamlandı. Oylama başladı.`);
-      broadcastState(code);
-    }
-  }
-}
-
-function handleCastVote(roomCode, voterId, targetId) {
-  const code = (roomCode || '').toUpperCase().trim();
-  const room = rooms.get(code);
-  if (!room) return;
-
-  const voter = room.players.find(p => p.id === voterId);
-  let targetName = 'PAS GEÇTİ';
-
-  if (targetId !== 'PAS') {
-    const target = room.players.find(p => p.id === targetId);
-    if (target) targetName = target.name;
-  }
-
-  room.votes[voterId] = targetId;
-
-  const voteEntry = {
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    voterName: voter ? voter.name : 'Oyuncu',
-    voterId,
-    targetName,
-    targetId
-  };
-
-  const exists = room.voteLogs.some(v => v.voterId === voterId);
-  if (!exists) {
-    room.voteLogs.push(voteEntry);
-  }
-
-  const activeVoters = room.players.filter(p => !(room.eliminatedPlayers || []).includes(p.id));
-  if (Object.keys(room.votes).length >= activeVoters.length) {
-    evaluateVotes(code);
-  } else {
-    broadcastState(code);
-  }
-}
-
-function evaluateVotes(roomCode) {
-  const code = (roomCode || '').toUpperCase().trim();
-  const room = rooms.get(code);
-  if (!room) return;
-
-  const voteCounts = {};
-  Object.values(room.votes).forEach(targetId => {
-    voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
-  });
-
-  let maxVotes = 0;
-  let accusedId = null;
-  let isTie = false;
-
-  Object.entries(voteCounts).forEach(([id, count]) => {
-    if (count > maxVotes) {
-      maxVotes = count;
-      accusedId = id;
-      isTie = false;
-    } else if (count === maxVotes) {
-      isTie = true;
-    }
-  });
-
-  // PAS or TIE -> NEXT ROUND
-  if (accusedId === 'PAS' || isTie || !accusedId) {
-    room.roundNumber += 1;
-    addLogMessage(room, `Çoğunluk Pas Geçti veya eşitlik sağlandı. Kimse elenmedi. ${room.roundNumber}. Tur başlıyor...`);
-
-    room.currentTurnIndex = 0;
-    room.votes = {};
-    room.voteLogs = [];
-    room.phase = 'CLUE_PHASE';
-
-    broadcastState(code);
-    return;
-  }
-
-  const accusedPlayer = room.players.find(p => p.id === accusedId);
-  room.accusedPlayerId = accusedId;
-  const isSpy = room.spies.includes(accusedId);
-
-  if (isSpy) {
-    addLogMessage(room, `${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} CASUS OLARAK YAKALANDI. Son tahmin hakkı açılıyor...`);
-    room.phase = 'SPY_GUESS';
-  } else {
-    if (!room.eliminatedPlayers.includes(accusedId)) {
-      room.eliminatedPlayers.push(accusedId);
-    }
-    addLogMessage(room, `${accusedPlayer ? accusedPlayer.name : 'Oyuncu'} masum bir SİVİL idi. Yanlış kişi elendi, Casus kazandı.`);
-    room.winner = 'SPIES';
-    room.phase = 'GAME_OVER';
-  }
-
-  broadcastState(code);
-}
-
-function handleSpyGuessSubmit(roomCode, socketId, wordGuess) {
-  const code = (roomCode || '').toUpperCase().trim();
-  const room = rooms.get(code);
-  if (!room) return;
-
-  const guessingSpyId = room.accusedPlayerId || socketId;
-  const guessingPlayer = room.players.find(p => p.id === guessingSpyId) || { name: 'Casus' };
-
-  room.spyGuess = wordGuess;
-  const isCorrect = wordGuess.toLowerCase() === room.secretWord.toLowerCase();
-
-  if (isCorrect) {
-    room.winner = 'SPIES';
-    addLogMessage(room, `CASUS DOĞRU TAHMİN ETTİ (${guessingPlayer.name}). Gizli kelime: "${room.secretWord}". Casuslar kazandı.`);
-    room.phase = 'GAME_OVER';
-  } else {
-    // Add to eliminatedPlayers list so they stay dead/spectator
-    if (!room.eliminatedPlayers.includes(guessingSpyId)) {
-      room.eliminatedPlayers.push(guessingSpyId);
-    }
-
-    // Remaining active spies count
-    const remainingSpies = room.spies.filter(id => !(room.eliminatedPlayers || []).includes(id));
-
-    if (remainingSpies.length > 0) {
-      // Game continues with remaining spy!
-      room.roundNumber += 1;
-      addLogMessage(room, `${guessingPlayer.name} (CASUS) yanlış tahmin yaptı ("${wordGuess}") ve ELENDİ! Masada ${remainingSpies.length} casus daha var. ${room.roundNumber}. Tur başlıyor...`);
-      room.currentTurnIndex = 0;
-      room.votes = {};
-      room.voteLogs = [];
-      room.accusedPlayerId = null;
-      room.spyGuess = null;
-      room.phase = 'CLUE_PHASE';
-    } else {
-      // All spies are eliminated! Civilians win!
-      room.winner = 'NORMALS';
-      addLogMessage(room, `${guessingPlayer.name} (CASUS) YANLIŞ TAHMİN ETTİ ("${wordGuess}"). Gerçek Kelime: "${room.secretWord}". Tüm casuslar elendi, Siviller kazandı!`);
-      room.phase = 'GAME_OVER';
-    }
-  }
-
-  broadcastState(code);
-}
-
-io.on('connection', (socket) => {
-  console.log(`🔌 Yeni Bağlantı (Socket ID): ${socket.id}`);
-
-  // 1. CREATE ROOM (Host)
-  socket.on('CREATE_ROOM', ({ hostName, category, spyCount, customWords, gameMode, turnDuration }, callback) => {
-    const roomCode = generateRoomCode();
-    socket.join(roomCode);
-
-    let initialSpyCount = Number(spyCount) || 1;
-    const initialMode = gameMode || 'classic';
-    if (initialMode === 'double') {
-      initialSpyCount = Math.max(2, initialSpyCount);
-    }
-    const initialDuration = turnDuration !== undefined && turnDuration !== null ? (parseInt(turnDuration, 10) || 30) : 30;
-
-    let roomState = {
-      roomCode,
-      hostId: socket.id,
-      players: [{ id: socket.id, name: hostName || 'Ev Sahibi', isHost: true, isReady: true }],
-      phase: 'LOBBY',
-      category: category || 'food',
-      customWords: customWords || [],
-      spyCount: initialSpyCount,
-      gameMode: initialMode,
-      turnDuration: initialDuration,
-      words: [],
-      secretWord: '',
-      spies: [],
-      eliminatedPlayers: [],
-      turnOrder: [],
-      currentTurnIndex: 0,
-      roundNumber: 1,
-      clueLogs: [],
-      votes: {},
-      voteLogs: [],
-      accusedPlayerId: null,
-      spyGuess: null,
-      winner: null
-    };
-
-    roomState = normalizeRoomState(roomState);
-    rooms.set(roomCode, roomState);
-
-    console.log(`🏠 Oda Oluşturuldu: [${roomCode}] Ev Sahibi: ${hostName}, category=${roomState.category}, gameMode=${roomState.gameMode}, spyCount=${roomState.spyCount}, turnDuration=${roomState.turnDuration}`);
-
-    if (callback) callback({ roomCode, peerId: socket.id });
-    broadcastState(roomCode);
-  });
-
-  // 2. JOIN ROOM (Client)
-  socket.on('JOIN_ROOM', ({ roomCode, playerName }, callback) => {
-    const code = (roomCode || '').toUpperCase().trim();
-    let room = rooms.get(code);
-
-    if (!room) {
-      if (callback) callback({ error: 'Oda bulunamadı!' });
-      return;
-    }
-
-    socket.join(code);
-    room = normalizeRoomState(room);
-
-    const existing = room.players.find(p => p.id === socket.id);
-    if (!existing) {
-      const newPlayer = {
-        id: socket.id,
-        name: playerName || 'Oyuncu',
-        isHost: false,
-        isReady: true
-      };
-      room.players.push(newPlayer);
-      addLogMessage(room, `${newPlayer.name} lobiye katıldı.`);
-    }
-
-    if (callback) callback({ roomCode: code, peerId: socket.id });
-    broadcastState(code);
-  });
-
-  // 3. UPDATE SETTINGS (In Lobby)
-  socket.on('UPDATE_SETTINGS', (data) => {
-    const roomCode = (data?.roomCode || data?.code || '').toUpperCase().trim();
-    console.log('2. Sunucu hosttan isteği aldı, herkese dağıtıyor. RoomCode:', roomCode, 'Data:', data);
-
-    let room = findRoomBySocket(socket, roomCode);
-    if (!room) {
-      console.error('❌ HATA: Sunucu oda bulamadı! RoomCode:', roomCode);
-      return;
-    }
-
-    if (roomCode) {
-      socket.join(roomCode);
-    }
-
-    const cat = data.category || data.Category;
-    const mode = data.gameMode || data.Mode;
-    const spies = data.spyCount !== undefined ? data.spyCount : data.Spies;
-    const duration = data.turnDuration !== undefined ? data.turnDuration : data.TurnDuration;
-
-    if (cat) room.category = cat;
-    if (mode) room.gameMode = mode;
-    if (duration !== undefined) room.turnDuration = Math.max(0, parseInt(duration, 10) || 0);
-    if (data.customWords && Array.isArray(data.customWords)) room.customWords = data.customWords;
-
-    let targetSpyCount = spies !== undefined ? Math.max(1, parseInt(spies, 10) || 1) : room.spyCount;
-    if (room.gameMode === 'double') {
-      targetSpyCount = Math.max(2, targetSpyCount);
-    }
-    room.spyCount = targetSpyCount;
-
-    room = normalizeRoomState(room);
-
-    console.log(`⚙️ Room [${room.roomCode}] settings updated: category=${room.category}, gameMode=${room.gameMode}, spyCount=${room.spyCount}, turnDuration=${room.turnDuration}`);
-
-    // Broadcast to room channel and to all players
-    io.to(room.roomCode).emit('STATE_UPDATE', room);
-    room.players.forEach(p => {
-      if (p.id) {
-        io.to(p.id).emit('STATE_UPDATE', room);
-      }
-    });
-  });
-
-  // 4. START GAME
-  socket.on('START_GAME', (data) => {
-    const roomCode = (data?.roomCode || data?.code || '').toUpperCase().trim();
-    console.log('🚀 Sunucu START_GAME isteği aldı. RoomCode:', roomCode);
-    let room = findRoomBySocket(socket, roomCode);
-    if (!room) {
-      console.error('❌ HATA: START_GAME için oda bulunamadı! RoomCode:', roomCode);
-      return;
-    }
-
-    room = normalizeRoomState(room);
-
-    const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
-    const secretWord = words[Math.floor(Math.random() * words.length)];
-    const playerIds = room.players.map(p => p.id);
-
-    let activeSpyCount = Math.max(1, parseInt(room.spyCount, 10) || 1);
-    if (room.gameMode === 'double') {
-      activeSpyCount = Math.max(2, activeSpyCount);
-    }
-    activeSpyCount = Math.min(activeSpyCount, Math.max(1, playerIds.length - 1));
-
-    const spies = shuffleArray(playerIds).slice(0, activeSpyCount);
-    const turnOrder = shuffleArray(playerIds);
-
-    room.phase = 'CLUE_PHASE';
-    room.words = words;
-    room.secretWord = secretWord;
-    room.spies = spies;
-    room.eliminatedPlayers = [];
-    room.turnOrder = turnOrder;
-    room.currentTurnIndex = 0;
-    room.roundNumber = 1;
-    room.clueLogs = [
-      {
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        senderName: 'Sistem',
-        text: `1. Tur Başladı.`
-      }
-    ];
-    room.votes = {};
-    room.voteLogs = [];
-    room.accusedPlayerId = null;
-    room.spyGuess = null;
-    room.winner = null;
-
-    console.log(`🚀 Room [${room.roomCode}] started game: category=${room.category}, gameMode=${room.gameMode}, activeSpyCount=${spies.length}, secretWord=${secretWord}`);
-    broadcastState(room.roomCode);
-  });
-
-  // 5. RETURN TO LOBBY
-  socket.on('RETURN_TO_LOBBY', (data) => {
-    const roomCode = (data?.roomCode || data?.code || '').toUpperCase().trim();
-    let room = findRoomBySocket(socket, roomCode);
-    if (!room) return;
-
-    room = normalizeRoomState(room);
-
-    const cleanPlayers = room.players.map(p => ({
+function getSanitizedRoomState(room, playerId) {
+  const currentPlayer = room.players.find(p => p.id === playerId);
+  const isSpy = currentPlayer?.role === 'SPY';
+
+  return {
+    code: room.code,
+    hostId: room.hostId,
+    category: room.category,
+    gameMode: room.gameMode,
+    spyCount: room.spyCount,
+    turnTimeLimit: room.turnTimeLimit || 30,
+    gameState: room.gameState,
+    players: room.players.map(p => ({
       id: p.id,
       name: p.name,
-      isHost: p.id === room.hostId || p.isHost,
-      isReady: true
-    }));
+      isHost: p.isHost,
+      isBot: p.isBot,
+      isAlive: p.isAlive,
+      role: (room.gameState === 'GAME_OVER' || p.id === playerId) ? p.role : undefined
+    })),
+    cards: room.cards,
+    secretWord: (room.gameState === 'GAME_OVER' || (!isSpy && room.gameState !== 'LOBBY')) ? room.secretWord : null,
+    turnOrder: room.turnOrder,
+    currentTurnIndex: room.currentTurnIndex,
+    currentRound: room.currentRound,
+    clues: room.clues,
+    votes: room.gameState === 'VOTING_PHASE' || room.gameState === 'GAME_OVER' ? room.votes : {},
+    logs: room.logs,
+    winner: room.winner,
+    winReason: room.winReason,
+    accusedPlayerId: room.accusedPlayerId || null,
+  };
+}
 
-    let freshLobbyState = {
-      roomCode: room.roomCode,
-      hostId: room.hostId,
-      players: cleanPlayers,
-      phase: 'LOBBY',
-      category: room.category || 'food',
-      customWords: room.customWords || [],
-      spyCount: room.gameMode === 'double' ? Math.max(2, room.spyCount || 2) : (room.spyCount || 1),
-      gameMode: room.gameMode || 'classic',
-      turnDuration: room.turnDuration !== undefined ? room.turnDuration : 30,
-      words: [],
-      secretWord: '',
-      spies: [],
-      eliminatedPlayers: [],
+function broadcastRoomUpdate(roomCode) {
+  const room = rooms.get(roomCode);
+  if (!room) return;
+
+  room.players.forEach(player => {
+    if (!player.isBot) {
+      io.to(player.id).emit('room_updated', getSanitizedRoomState(room, player.id));
+    }
+  });
+}
+
+function processBotTurn(room) {
+  if (room.gameState !== 'CLUE_PHASE') return;
+  const currentSpeakerId = room.turnOrder[room.currentTurnIndex];
+  const currentSpeaker = room.players.find(p => p.id === currentSpeakerId);
+
+  if (!currentSpeaker || !currentSpeaker.isBot) return;
+
+  setTimeout(() => {
+    if (room.gameState !== 'CLUE_PHASE') return;
+    if (room.turnOrder[room.currentTurnIndex] !== currentSpeakerId) return;
+
+    let botClue = '';
+    const secret = room.secretWord;
+    if (currentSpeaker.role === 'SPY') {
+      const genericClues = ['güzel', 'sevilir', 'farklı', 'sıcak', 'tatlı', 'tuzlu', 'popüler', 'leziz', 'renkli'];
+      botClue = genericClues[Math.floor(Math.random() * genericClues.length)];
+    } else {
+      const clueMap = {
+        'Menemen': ['domates', 'biber', 'yumurta', 'kahvaltı'],
+        'Mantı': ['yoğurt', 'sarımsak', 'kayseri', 'hamur'],
+        'Kokoreç': ['ekmek', 'baharat', 'gece', 'sakatat'],
+        'Karnıyarık': ['patlıcan', 'kıyma', 'fırın', 'türk'],
+        'Ayran': ['yoğurt', 'tuzlu', 'soğuk', 'içecek'],
+        'Baklava': ['fıstık', 'şerbet', 'çıtır', 'gaziantep'],
+        'Tavuk Döner': ['dürüm', 'sos', 'döner', 'öğle'],
+        'Künefe': ['peynir', 'sıcak', 'hatay', 'kadayıf'],
+      };
+      const cluesList = clueMap[secret] || [secret.substring(0, 3).toLowerCase(), 'lezzetli', 'tarif', 'görsel'];
+      botClue = cluesList[Math.floor(Math.random() * cluesList.length)];
+    }
+
+    submitClue(room, currentSpeaker.id, botClue);
+  }, 1500);
+}
+
+function submitClue(room, playerId, clueText) {
+  const player = room.players.find(p => p.id === playerId);
+  if (!player) return;
+
+  room.clues.push({
+    round: room.currentRound,
+    playerId: player.id,
+    playerName: player.name,
+    clueText: clueText.trim(),
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+
+  addRoomLog(room, `${player.name} -> "${clueText.trim()}"`, 'clue');
+
+  room.currentTurnIndex += 1;
+
+  if (room.currentTurnIndex >= room.turnOrder.length) {
+    addRoomLog(room, `${room.currentRound}. Tur ipuçları tamamlandı. Oylama başlıyor.`, 'phase');
+    
+    room.gameState = 'VOTING_PHASE';
+    room.votes = {};
+    broadcastRoomUpdate(room.code);
+
+    setTimeout(() => {
+      if (room.gameState === 'VOTING_PHASE') {
+        processBotVotes(room);
+      }
+    }, 2000);
+  } else {
+    broadcastRoomUpdate(room.code);
+    processBotTurn(room);
+  }
+}
+
+function processBotVotes(room) {
+  const bots = room.players.filter(p => p.isBot && p.isAlive);
+  const candidates = room.players.filter(p => p.isAlive);
+
+  bots.forEach(bot => {
+    if (!room.votes[bot.id]) {
+      const otherPlayers = candidates.filter(c => c.id !== bot.id);
+      if (otherPlayers.length > 0) {
+        const target = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+        room.votes[bot.id] = target.id;
+      }
+    }
+  });
+
+  checkVotingResults(room);
+}
+
+function checkVotingResults(room) {
+  const activePlayersCount = room.players.filter(p => p.isAlive).length;
+  const votesCount = Object.keys(room.votes).length;
+
+  if (votesCount >= activePlayersCount) {
+    const voteCounts = {};
+    Object.values(room.votes).forEach(targetId => {
+      if (targetId && targetId !== 'PASS') {
+        voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+      }
+    });
+
+    let maxVotes = 0;
+    let accusedId = null;
+    let tie = false;
+
+    Object.entries(voteCounts).forEach(([pid, count]) => {
+      if (count > maxVotes) {
+        maxVotes = count;
+        accusedId = pid;
+        tie = false;
+      } else if (count === maxVotes) {
+        tie = true;
+      }
+    });
+
+    if (!accusedId || tie || maxVotes <= Math.floor(activePlayersCount / 2)) {
+      addRoomLog(room, `Çoğunluk pas geçti veya eşitlik sağlandı. Sonraki tura geçiliyor.`, 'warning');
+      
+      room.currentRound += 1;
+      room.currentTurnIndex = 0;
+      room.gameState = 'CLUE_PHASE';
+      room.votes = {};
+      broadcastRoomUpdate(room.code);
+      processBotTurn(room);
+    } else {
+      const accusedPlayer = room.players.find(p => p.id === accusedId);
+      room.accusedPlayerId = accusedId;
+      addRoomLog(room, `Çoğunluk oyuyla ${accusedPlayer.name} casus olarak suçlandı.`, 'important');
+
+      if (accusedPlayer.role === 'SPY') {
+        room.gameState = 'SPY_GUESS_PHASE';
+        addRoomLog(room, `${accusedPlayer.name} CASUS idi! Casus için son şans: Gizli kelimeyi tahmin ediyor...`, 'warning');
+        broadcastRoomUpdate(room.code);
+
+        if (accusedPlayer.isBot) {
+          setTimeout(() => {
+            const randomGuess = room.cards[Math.floor(Math.random() * room.cards.length)];
+            handleSpyGuess(room, accusedPlayer.id, randomGuess);
+          }, 3000);
+        }
+      } else {
+        room.gameState = 'GAME_OVER';
+        room.winner = 'SPY';
+        room.winReason = `Siviller masum bir oyuncuyu (${accusedPlayer.name}) eledi. Casus kazandı.`;
+        addRoomLog(room, `${accusedPlayer.name} bir SİVİL idi! Casus kazandı.`, 'danger');
+        broadcastRoomUpdate(room.code);
+      }
+    }
+  }
+}
+
+function handleSpyGuess(room, spyId, guessedWord) {
+  const spy = room.players.find(p => p.id === spyId);
+  const isCorrect = guessedWord.trim().toLowerCase() === room.secretWord.toLowerCase();
+
+  room.gameState = 'GAME_OVER';
+  if (isCorrect) {
+    room.winner = 'SPY';
+    room.winReason = `Casus (${spy?.name || 'Casus'}) doğru kelimeyi ("${room.secretWord}") tahmin etti ve kazandı!`;
+    addRoomLog(room, `Casus "${guessedWord}" tahminini yaptı ve DOĞRU bildi! Casus kazandı.`, 'success');
+  } else {
+    room.winner = 'CIVILIANS';
+    room.winReason = `Casus (${spy?.name || 'Casus'}) yanlış tahmin ("${guessedWord}") yaptı. Gizli kelime: "${room.secretWord}". Siviller kazandı!`;
+    addRoomLog(room, `Casus "${guessedWord}" tahmininde bulundu ama YANLIŞTI! Siviller kazandı.`, 'danger');
+  }
+  broadcastRoomUpdate(room.code);
+}
+
+// Socket handlers
+io.on('connection', (socket) => {
+  socket.on('create_room', ({ nickname }) => {
+    let roomCode = generateRoomCode();
+    while (rooms.has(roomCode)) {
+      roomCode = generateRoomCode();
+    }
+
+    const hostName = nickname?.trim() || getRandomNickname();
+    const room = {
+      code: roomCode,
+      hostId: socket.id,
+      category: 'Yemekler',
+      gameMode: 'Klasik Mod',
+      spyCount: 1,
+      turnTimeLimit: 30,
+      gameState: 'LOBBY',
+      secretWord: null,
+      cards: [],
       turnOrder: [],
       currentTurnIndex: 0,
-      roundNumber: 1,
-      clueLogs: [
-        {
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          senderName: 'Sistem',
-          text: 'Yeni Lobiye Dönüldü.'
-        }
-      ],
+      currentRound: 1,
+      clues: [],
       votes: {},
-      voteLogs: [],
-      accusedPlayerId: null,
-      spyGuess: null,
-      winner: null
+      logs: [],
+      winner: null,
+      winReason: null,
+      players: [
+        {
+          id: socket.id,
+          name: hostName,
+          isHost: true,
+          isBot: false,
+          isAlive: true,
+          role: null
+        }
+      ]
     };
 
-    freshLobbyState = normalizeRoomState(freshLobbyState);
-    rooms.set(room.roomCode, freshLobbyState);
-    console.log(`🔄 Room [${room.roomCode}] returned to lobby`);
-    broadcastState(room.roomCode);
+    rooms.set(roomCode, room);
+    socket.join(roomCode);
+    addRoomLog(room, `${hostName} odayı oluşturdu. (Oda: ${roomCode})`, 'info');
+
+    socket.emit('room_joined', getSanitizedRoomState(room, socket.id));
   });
 
-  // 6. SUBMIT CLUE
-  socket.on('SUBMIT_CLUE', ({ roomCode, clueText }) => {
-    const room = findRoomBySocket(socket, roomCode);
-    if (room) {
-      handleClueSubmit(room.roomCode, socket.id, clueText);
+  socket.on('join_room', ({ roomCode, nickname }) => {
+    const upperCode = roomCode?.trim().toUpperCase();
+    const room = rooms.get(upperCode);
+
+    if (!room) {
+      return socket.emit('error_message', 'Oda bulunamadı!');
     }
-  });
-
-  // 7. CAST VOTE
-  socket.on('CAST_VOTE', ({ roomCode, targetId }) => {
-    const room = findRoomBySocket(socket, roomCode);
-    if (room) {
-      handleCastVote(room.roomCode, socket.id, targetId);
+    if (room.gameState !== 'LOBBY') {
+      return socket.emit('error_message', 'Oyun devam ediyor, katılamazsınız!');
     }
-  });
 
-  // 8. SPY GUESS SUBMIT
-  socket.on('SPY_GUESS_SUBMIT', ({ roomCode, wordGuess }) => {
-    const room = findRoomBySocket(socket, roomCode);
-    if (room) {
-      handleSpyGuessSubmit(room.roomCode, socket.id, wordGuess);
+    const name = nickname?.trim() || getRandomNickname();
+    const existing = room.players.find(p => p.id === socket.id);
+    if (!existing) {
+      room.players.push({
+        id: socket.id,
+        name,
+        isHost: false,
+        isBot: false,
+        isAlive: true,
+        role: null
+      });
     }
+
+    socket.join(upperCode);
+    addRoomLog(room, `${name} odaya katıldı.`, 'info');
+    socket.emit('room_joined', getSanitizedRoomState(room, socket.id));
+    broadcastRoomUpdate(upperCode);
   });
 
-  // DISCONNECT
+  socket.on('add_bot', ({ roomCode }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.gameState !== 'LOBBY') return;
+    if (room.hostId !== socket.id) return;
+
+    const botId = 'bot_' + Math.random().toString(36).substr(2, 9);
+    const botName = getRandomNickname();
+
+    room.players.push({
+      id: botId,
+      name: botName,
+      isHost: false,
+      isBot: true,
+      isAlive: true,
+      role: null
+    });
+
+    addRoomLog(room, `Bot (${botName}) odaya eklendi.`, 'info');
+    broadcastRoomUpdate(roomCode);
+  });
+
+  socket.on('update_room_options', ({ roomCode, category, gameMode, spyCount, turnTimeLimit }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.gameState !== 'LOBBY') return;
+    if (room.hostId !== socket.id) return;
+
+    if (category) room.category = category;
+    if (gameMode) room.gameMode = gameMode;
+    if (spyCount !== undefined) room.spyCount = Math.max(1, Math.min(10, spyCount));
+    if (turnTimeLimit !== undefined) room.turnTimeLimit = Math.max(5, turnTimeLimit);
+
+    addRoomLog(room, `Oyun ayarları güncellendi. (Kategori: ${room.category}, Casus Sayısı: ${room.spyCount})`, 'info');
+    broadcastRoomUpdate(roomCode);
+  });
+
+  socket.on('start_game', ({ roomCode }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.gameState !== 'LOBBY') return;
+    if (room.hostId !== socket.id) return;
+
+    if (room.players.length < 3) {
+      return socket.emit('error_message', 'Oyunu başlatmak için en az 3 oyuncu gereklidir!');
+    }
+
+    const categoryPool = CATEGORIES[room.category] || CATEGORIES['Yemekler'];
+    const shuffledPool = shuffleArray(categoryPool);
+    const selected20 = shuffledPool.slice(0, 20);
+
+    const secretWord = selected20[Math.floor(Math.random() * selected20.length)];
+
+    // Fix: Allow requested spy count up to N-1 (leaving at least 1 civilian)
+    const countSpies = Math.min(room.spyCount, Math.max(1, room.players.length - 1));
+    const playerIndices = shuffleArray(room.players.map((_, i) => i));
+    const spyIndices = new Set(playerIndices.slice(0, countSpies));
+
+    room.players.forEach((p, idx) => {
+      p.role = spyIndices.has(idx) ? 'SPY' : 'CIVILIAN';
+      p.isAlive = true;
+    });
+
+    room.cards = selected20;
+    room.secretWord = secretWord;
+    room.gameState = 'CLUE_PHASE';
+    room.currentRound = 1;
+    room.clues = [];
+    room.votes = {};
+    room.winner = null;
+    room.winReason = null;
+    room.accusedPlayerId = null;
+
+    // Fixed turn order sequence for clue giving
+    room.turnOrder = shuffleArray(room.players.map(p => p.id));
+    room.currentTurnIndex = 0;
+
+    addRoomLog(room, `Oyun başladı. Kategori: ${room.category}, Casus Sayısı: ${countSpies}. Sırayla ipucu verme evresi başladı.`, 'phase');
+
+    broadcastRoomUpdate(roomCode);
+    processBotTurn(room);
+  });
+
+  socket.on('submit_clue', ({ roomCode, clueText }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.gameState !== 'CLUE_PHASE') return;
+
+    const currentSpeakerId = room.turnOrder[room.currentTurnIndex];
+    if (currentSpeakerId !== socket.id) {
+      return socket.emit('error_message', 'Henüz sizin sıranız değil!');
+    }
+
+    submitClue(room, socket.id, clueText);
+  });
+
+  socket.on('submit_vote', ({ roomCode, targetPlayerId }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.gameState !== 'VOTING_PHASE') return;
+
+    const voter = room.players.find(p => p.id === socket.id);
+    if (!voter || !voter.isAlive) return;
+
+    room.votes[socket.id] = targetPlayerId;
+    addRoomLog(room, `${voter.name} oyunu kullandı.`, 'info');
+
+    broadcastRoomUpdate(roomCode);
+    checkVotingResults(room);
+  });
+
+  socket.on('spy_guess_word', ({ roomCode, guessedWord }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player || player.role !== 'SPY') return;
+
+    handleSpyGuess(room, socket.id, guessedWord);
+  });
+
+  socket.on('return_to_lobby', ({ roomCode }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    if (room.hostId !== socket.id) return;
+
+    room.gameState = 'LOBBY';
+    room.secretWord = null;
+    room.cards = [];
+    room.turnOrder = [];
+    room.clues = [];
+    room.votes = {};
+    room.winner = null;
+    room.winReason = null;
+    room.accusedPlayerId = null;
+    room.players.forEach(p => p.role = null);
+
+    addRoomLog(room, `Oyun sıfırlandı, lobiye dönüldü.`, 'info');
+    broadcastRoomUpdate(roomCode);
+  });
+
   socket.on('disconnect', () => {
     rooms.forEach((room, code) => {
       const idx = room.players.findIndex(p => p.id === socket.id);
       if (idx !== -1) {
         const leavingPlayer = room.players[idx];
         room.players.splice(idx, 1);
-        addLogMessage(room, `${leavingPlayer.name} odadan ayrıldı.`);
+        addRoomLog(room, `${leavingPlayer.name} ayrıldı.`, 'warning');
 
         if (room.players.length === 0) {
           rooms.delete(code);
         } else {
-          if (room.hostId === socket.id && room.players.length > 0) {
-            const newHost = room.players[0];
-            newHost.isHost = true;
-            room.hostId = newHost.id;
+          if (leavingPlayer.isHost) {
+            room.players[0].isHost = true;
+            room.hostId = room.players[0].id;
+            addRoomLog(room, `Yeni oda sahibi: ${room.players[0].name}`, 'info');
           }
-          broadcastState(code);
+          broadcastRoomUpdate(code);
         }
       }
     });
   });
 });
 
+app.use(express.static(path.join(__dirname, '../dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Node.js Socket.IO Oyun Sunucusu http://localhost:${PORT} adresinde aktif!`);
+httpServer.listen(PORT, () => {
+  console.log(`Socket.IO Server running on port ${PORT}`);
 });

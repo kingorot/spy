@@ -1,106 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, User } from 'lucide-react';
-import { soundEngine } from '../utils/audio';
+import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 
-export const ClueTable = ({ clueLogs = [], players = [], turnOrder = [] }) => {
-  const [selectedRound, setSelectedRound] = useState(1);
+export default function ClueTable({ clues = [] }) {
+  const [activeRound, setActiveRound] = useState(1);
+  const [collapsed, setCollapsed] = useState(false);
 
-  // Parse clueLogs into round-based clue maps
-  // Format: { 1: { "senderId/Name": "clueText" } }
-  const roundCluesMap = {};
-  let currentRoundCounter = 1;
+  const maxRound = clues.reduce((max, c) => Math.max(max, c.round || 1), 1);
+  const rounds = Array.from({ length: maxRound }, (_, i) => i + 1);
 
-  clueLogs.forEach(log => {
-    if (log.senderName === 'Sistem' && log.text) {
-      const match = log.text.match(/(\d+)\.\s*Tur/i);
-      if (match && match[1]) {
-        currentRoundCounter = parseInt(match[1], 10);
-      }
-    } else if (log.senderName && log.senderName !== 'Sistem') {
-      if (!roundCluesMap[currentRoundCounter]) {
-        roundCluesMap[currentRoundCounter] = {};
-      }
-      // Store by senderId if available, fallback to senderName
-      const key = log.senderId || log.senderName;
-      roundCluesMap[currentRoundCounter][key] = log.text;
-    }
-  });
-
-  const availableRounds = Object.keys(roundCluesMap).map(Number).sort((a, b) => a - b);
-  const maxAvailableRound = availableRounds.length > 0 ? Math.max(...availableRounds) : 1;
-
-  // Auto-switch to highest round when a new round starts
+  // Automatically switch to the latest round when new round clues are added
   useEffect(() => {
-    if (maxAvailableRound > 0) {
-      setSelectedRound(maxAvailableRound);
-    }
-  }, [maxAvailableRound]);
+    setActiveRound(maxRound);
+  }, [maxRound, clues.length]);
 
-  if (availableRounds.length === 0) return null;
-
-  const currentRoundData = roundCluesMap[selectedRound] || {};
-
-  // Preserve FIXED player ordering using turnOrder or players list so order NEVER changes between tabs!
-  const orderedPlayers = (turnOrder && turnOrder.length > 0)
-    ? turnOrder.map(pid => players.find(p => p.id === pid)).filter(Boolean)
-    : players;
+  const currentClues = clues.filter(c => (c.round || 1) === activeRound);
 
   return (
-    <div className="glass-panel p-3 rounded-2xl border border-zinc-800 shadow-2xl space-y-2 max-h-64 overflow-y-auto w-full">
-      {/* Header & Round Tabs */}
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5 flex-wrap gap-1">
-        <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-zinc-300">
-          <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
-          <span>İPUÇLARI</span>
+    <div className="w-full bg-[#0c0d12]/95 backdrop-blur border border-zinc-800 rounded-xl shadow-2xl overflow-hidden transition-all">
+      {/* Header */}
+      <div
+        onClick={() => setCollapsed(!collapsed)}
+        className="px-3.5 py-2.5 bg-[#14151c] border-b border-zinc-800 flex items-center justify-between cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-zinc-300" />
+          <span className="text-xs font-bold text-zinc-200 uppercase tracking-widest font-mono">
+            İPUÇLARI
+          </span>
         </div>
 
-        {/* Round Selector Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {availableRounds.map(rNum => {
-            const isSelected = selectedRound === rNum;
-            return (
+        {/* Round tabs */}
+        {!collapsed && (
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {rounds.map(r => (
               <button
-                key={rNum}
-                onClick={() => {
-                  soundEngine.playClick();
-                  setSelectedRound(rNum);
-                }}
-                className={`px-2 py-0.5 rounded text-[11px] font-black transition-all ${
-                  isSelected
-                    ? 'bg-white text-zinc-950 shadow'
-                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                key={r}
+                onClick={() => setActiveRound(r)}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold font-mono transition ${
+                  activeRound === r
+                    ? 'bg-white text-black'
+                    : 'bg-zinc-800 text-zinc-400 hover:text-white'
                 }`}
               >
-                {rNum}. Tur
+                {r}. Tur
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {collapsed ? <ChevronUp className="w-4 h-4 text-zinc-400" /> : <ChevronDown className="w-4 h-4 text-zinc-400" />}
       </div>
 
-      {/* Clues List for Selected Round (Fixed Player Order) */}
-      <div className="space-y-1.5">
-        {orderedPlayers.map((player) => {
-          const clueText = currentRoundData[player.id] || currentRoundData[player.name];
-          if (!clueText) return null; // Only render if clue was given in this round
-
-          return (
-            <div
-              key={player.id}
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between text-xs gap-2"
-            >
-              <div className="flex items-center gap-1 text-xs text-zinc-300 font-bold truncate">
-                <User className="w-3 h-3 text-zinc-400 flex-shrink-0" />
-                <span className="truncate">{player.name}:</span>
+      {/* Body */}
+      {!collapsed && (
+        <div className="p-3 max-h-48 overflow-y-auto space-y-2 text-xs">
+          {currentClues.length === 0 ? (
+            <p className="text-zinc-500 italic text-center py-2">Bu turda henüz ipucu yok.</p>
+          ) : (
+            currentClues.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between bg-[#14151d] border border-zinc-800 px-3 py-2 rounded-lg text-zinc-200 font-mono"
+              >
+                <span className="text-zinc-400 font-medium">{item.playerName}:</span>
+                <span className="text-white font-extrabold bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded">
+                  "{item.clueText}"
+                </span>
               </div>
-
-              <span className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-700 text-zinc-100 font-black text-xs whitespace-nowrap">
-                "{clueText}"
-              </span>
-            </div>
-          );
-        })}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
-};
+}

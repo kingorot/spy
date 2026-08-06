@@ -1,124 +1,44 @@
-export const CATEGORIES = [
-  {
-    id: 'food',
-    name: 'Yemekler & İçecekler',
-    icon: 'Utensils',
-    color: 'from-amber-500 to-orange-600',
-    words: [
-      'Adana Kebap', 'Baklava', 'Mantı', 'Pizza', 'Suşi', 'Lahmacun', 'Tavuk Döner',
-      'Karnıyarık', 'İçli Köfte', 'Menemen', 'Börek', 'Künefe', 'İskender', 'Kokoreç',
-      'Kuru Fasulye', 'Pide', 'Sarma', 'Sütlaç', 'Şinitzel', 'Kumpir', 'Mercimek Çorbası',
-      'Tiramisu', 'Lazanya', 'Ramen', 'Tako', 'Falafel', 'Hünkar Beğendi', 'Profiterol',
-      'Çiğ Köfte', 'Tantuni', 'Cağ Kebabı', 'Kuzu Tandır', 'Trileçe', 'Waffle', 'Gözleme',
-      'Ayran', 'Şalgam', 'Salep', 'Türk Kahvesi', 'Limonata'
-    ]
-  },
-  {
-    id: 'animals',
-    name: 'Hayvanlar',
-    icon: 'Dog',
-    color: 'from-emerald-500 to-teal-600',
-    words: [
-      'Aslan', 'Yunus', 'Kartal', 'Bukalemun', 'Zürafa', 'Penguen', 'Kanguru',
-      'Koala', 'Kutup Ayısı', 'Kaplan', 'Kobra Yılanı', 'Panda', 'Baykuş', 'Çita',
-      'Su Aygırı', 'Yarasa', 'Ahtapot', 'Timsah', 'Sincap', 'Orangutan', 'Sinek Kuşu',
-      'Flamingo', 'Karınca Yiyen', 'Köstebek', 'Fok Balığı', 'Kunduz', 'Akrep', 'Vaşak',
-      'Çakal', 'Geyik', 'Kurt', 'Atmaca', 'Sırtlan', 'Karakulak', 'Denizanası'
-    ]
-  },
-  {
-    id: 'countries',
-    name: 'Ülkeler & Şehirler',
-    icon: 'Globe',
-    color: 'from-blue-500 to-cyan-600',
-    words: [
-      'Japonya', 'İtalya', 'Brezilya', 'İstanbul', 'Paris', 'Tokyo', 'Mısır',
-      'Avustralya', 'İzlanda', 'Kanada', 'Hindistan', 'Meksika', 'Roma', 'New York',
-      'Londra', 'Kore', 'Almanya', 'İspanya', 'İskoçya', 'Yunanistan', 'Norveç',
-      'Arjantin', 'Kapadokya', 'Venedik', 'Pekin', 'Sidney', 'Amsterdam', 'Prag',
-      'Küba', 'Tayland', 'Fas', 'Kosta Rika', 'Karakum', 'Dubai', 'Kyoto'
-    ]
-  },
-  {
-    id: 'jobs',
-    name: 'Meslekler',
-    icon: 'Briefcase',
-    color: 'from-purple-500 to-indigo-600',
-    words: [
-      'Aşçı', 'Dedektif', 'Astronot', 'Mimar', 'Pilot', 'İtfaiyeci', 'Cerrah',
-      'Hakim', 'Bale Dansçısı', 'Biyolog', 'Fotoğrafçı', 'Kaptan', 'Arkeolog',
-      'Psikolog', 'Yazılımcı', 'Heykeltıraş', 'Çilingir', 'Kuyumcu', 'Marangoz',
-      'Gazeteci', 'Grafiker', 'Dublör', 'Hakem', 'Polis', 'Ressam', 'Avukat',
-      'Veteriner', 'Eczacı', 'Meteorolog', 'Stilist', 'Sanat Yönetmeni'
-    ]
-  },
-  {
-    id: 'movies',
-    name: 'Filmler & Sinema',
-    icon: 'Film',
-    color: 'from-rose-500 to-pink-600',
-    words: [
-      'Harry Potter', 'Matrix', 'Titanic', 'Yüzüklerin Efendisi', 'Star Wars', 'Avatar',
-      'Gladyatör', 'Inception', 'Joker', 'Sherlock Holmes', 'Örümcek Adam', 'Batman',
-      'Geleceğe Dönüş', 'Karayip Korsanları', 'Interstellar', 'Hababam Sınıfı',
-      'Vizontele', 'G.O.R.A.', 'A.R.O.G', 'Yeşil Yol', 'Pulp Fiction', 'La Casa De Papel',
-      'Game of Thrones', 'Squid Game', 'Breaking Bad', 'Stranger Things', 'Fight Club'
-    ]
-  },
-  {
-    id: 'objects',
-    name: 'Nesneler & Eşyalar',
-    icon: 'Box',
-    color: 'from-violet-500 to-purple-600',
-    words: [
-      'Pusula', 'Teleskop', 'Piyano', 'Helikopter', 'Daktilo', 'Elektro Gitar',
-      'Gramofon', 'Matbaa', 'Mikroskop', 'Saat', 'Projeksiyon', 'Drone', 'Kulaklık',
-      'Şemsiye', 'Bumerang', 'Keman', 'Akordeon', 'Radyo', 'Barometre', 'Termometre',
-      'Klarnet', 'Dalgıç Kaskı', 'Projektör', 'Şövale', 'Seramik Çarkı', 'Mikrofon'
-    ]
-  },
-  {
-    id: 'sports',
-    name: 'Sporlar & Hobiler',
-    icon: 'Trophy',
-    color: 'from-amber-500 to-yellow-600',
-    words: [
-      'Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Okçuluk', 'Yamaç Paraşütü',
-      'Dalgıçlık', 'Dağcılık', 'Kaykay', 'Boks', 'Formül 1', 'Buz Pateni',
-      'Satranç', 'Sörf', 'Rafting', 'Bowling', 'Golf', 'Fencing (Eskrim)',
-      'Maraton', 'Taekwondo', 'Kano', 'Orienteering', 'Buz Hokeyi'
-    ]
-  }
-];
-
-function shuffleArray(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-export const getRandomWordsFromCategory = (categoryId, count = 20, customWords = []) => {
-  let pool = [];
-  if (categoryId === 'custom' && customWords && customWords.length >= 1) {
-    pool = Array.from(new Set(customWords));
-  } else {
-    const category = CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[0];
-    pool = Array.from(new Set(category.words));
-  }
-
-  if (!pool || pool.length === 0) {
-    pool = CATEGORIES[0].words;
-  }
-
-  // Pad pool if words are fewer than count
-  while (pool.length < count) {
-    pool = [...pool, ...pool];
-  }
-
-  // Unbiased Fisher-Yates shuffle
-  const shuffled = shuffleArray(pool);
-  return shuffled.slice(0, count);
+export const GAME_CATEGORIES = {
+  "Yemekler": [
+    "Mantı", "Kokoreç", "Karnıyarık", "Ayran", "Baklava",
+    "Tavuk Döner", "Künefe", "İçli Köfte", "Kuzu Tandır", "Menemen",
+    "Tiramisu", "Tantuni", "Falafel", "Çiğ Köfte", "Kuru Fasulye",
+    "Gözleme", "Ramen", "Kumpir", "Cağ Kebabı", "Türk Kahvesi"
+  ],
+  "Ülkeler & Şehirler": [
+    "Türkiye", "Japonya", "İtalya", "Almanya", "Fransa",
+    "İngiltere", "Mısır", "Brezilya", "Kanada", "Avustralya",
+    "İstanbul", "Roma", "Tokyo", "Paris", "New York",
+    "Londra", "Pekin", "Barselona", "Kahire", "Amsterdam"
+  ],
+  "Meslekler": [
+    "Doktor", "Öğretmen", "Mühendis", "Aşçı", "Pilot",
+    "Polis", "İtfaiyeci", "Avukat", "Mimar", "Ressam",
+    "Gazeteci", "Berber", "Çiftçi", "Garson", "Eczacı",
+    "Şoför", "Dedektif", "Bilim İnsanı", "Kaptan", "Yazılımcı"
+  ],
+  "Hayvanlar": [
+    "Aslan", "Kaplan", "Kartal", "Yunus", "Kurt",
+    "Panda", "Zürafa", "Fil", "Penguen", "Kedi",
+    "Köpek", "Ayı", "Papağan", "Timsah", "Baykuş",
+    "Kanguru", "Zebra", "Koala", "Çita", "Bukalemun"
+  ],
+  "Filmler & Diziler": [
+    "Harry Potter", "Yüzüklerin Efendisi", "Matrix", "Inception", "Interstellar",
+    "Star Wars", "Gladiator", "Titanic", "Avatar", "Joker",
+    "Breaking Bad", "Game of Thrones", "Sherlock", "Stranger Things", "Squid Game",
+    "The Office", "Friends", "La Casa de Papel", "Dark", "Peaky Blinders"
+  ],
+  "Eşyalar": [
+    "Telefon", "Bilgisayar", "Kulaklık", "Televizyon", "Buzdolabı",
+    "Kahve Makinesi", "Kamera", "Saat", "Piyano", "Gitar",
+    "Bisiklet", "Araba", "Ütü", "Süpürge", "Mikrodalga",
+    "Lamba", "Projeksiyon", "Tablet", "Drone", "Akıllı Saat"
+  ]
 };
+
+export const GAME_MODES = [
+  "Klasik Mod",
+  "Hızlı Mod (Zaman Sınırlı)",
+  "Kör Casuslar Modu"
+];

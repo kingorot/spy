@@ -1,109 +1,42 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { History, ChevronDown, ChevronUp, Vote, User } from 'lucide-react';
-import { soundEngine } from '../utils/audio';
+import React, { useState } from 'react';
+import { History, ChevronDown, ChevronUp } from 'lucide-react';
 
-export const GameLogPanel = ({ clueLogs, voteLogs }) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const logEndRef = useRef(null);
-
-  const toggleOpen = () => {
-    soundEngine.playClick();
-    setIsOpen(!isOpen);
-  };
-
-  useEffect(() => {
-    if (logEndRef.current && isOpen) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [clueLogs, voteLogs, isOpen]);
-
-  const allLogs = [
-    ...clueLogs.map(c => ({ type: 'CLUE', ...c })),
-    ...voteLogs.map(v => ({ type: 'VOTE', ...v }))
-  ];
+export default function GameLogPanel({ logs = [] }) {
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={`glass-panel rounded-2xl border border-zinc-800 shadow-2xl transition-all duration-300 overflow-hidden w-full ${
-      isOpen ? 'w-80 sm:w-88' : 'w-auto'
-    }`}>
-      {/* Panel Header */}
-      <button
-        onClick={toggleOpen}
-        className="w-full px-3.5 py-2 bg-zinc-900 hover:bg-zinc-850 border-b border-zinc-800 flex items-center justify-between gap-2 text-xs font-black text-zinc-300"
+    <div className="w-full bg-[#0c0d12]/95 backdrop-blur border border-zinc-800 rounded-xl shadow-2xl overflow-hidden transition-all">
+      {/* Header */}
+      <div
+        onClick={() => setCollapsed(!collapsed)}
+        className="px-3.5 py-2.5 bg-[#14151c] border-b border-zinc-800 flex items-center justify-between cursor-pointer select-none"
       >
         <div className="flex items-center gap-2">
-          <History className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="uppercase tracking-wider">GEÇMİŞ</span>
-          <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300 text-[10px] font-bold">
-            {allLogs.length}
+          <History className="w-4 h-4 text-zinc-300" />
+          <span className="text-xs font-bold text-zinc-200 uppercase tracking-widest font-mono">
+            GEÇMİŞ ({logs.length})
           </span>
         </div>
-        {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-zinc-500" /> : <ChevronUp className="w-3.5 h-3.5 text-zinc-500" />}
-      </button>
+        {collapsed ? <ChevronUp className="w-4 h-4 text-zinc-400" /> : <ChevronDown className="w-4 h-4 text-zinc-400" />}
+      </div>
 
-      {/* Panel Body */}
-      {isOpen && (
-        <div className="p-2.5 max-h-56 overflow-y-auto space-y-1.5 text-xs font-medium">
-          {allLogs.length === 0 ? (
-            <p className="text-[11px] text-zinc-500 text-center py-3">
-              Geçmiş boş.
-            </p>
+      {/* Body */}
+      {!collapsed && (
+        <div className="p-3 max-h-48 overflow-y-auto space-y-1.5 text-xs font-mono">
+          {logs.length === 0 ? (
+            <p className="text-zinc-500 italic">Henüz geçmiş kaydı yok.</p>
           ) : (
-            allLogs.map((item, index) => {
-              if (item.type === 'CLUE') {
-                const isSystem = item.senderName === 'Sistem';
-                return (
-                  <div
-                    key={index}
-                    className={`p-2 rounded-xl border flex items-center justify-between gap-2 ${
-                      isSystem
-                        ? 'bg-zinc-900/40 border-zinc-800 text-zinc-400 text-[11px]'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-200'
-                    }`}
-                  >
-                    {!isSystem ? (
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <User className="w-3 h-3 text-zinc-400 flex-shrink-0" />
-                        <span className="font-bold text-white text-xs truncate">
-                          {item.senderName}
-                        </span>
-                        <span className="text-[10px] text-zinc-500">➔</span>
-                        <span className="font-extrabold text-zinc-100 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">
-                          "{item.text}"
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="truncate font-semibold">{item.text}</span>
-                    )}
-                    <span className="text-[9px] text-zinc-500 font-mono">{item.timestamp}</span>
-                  </div>
-                );
-              } else {
-                const isPas = item.targetId === 'PAS';
-                return (
-                  <div
-                    key={index}
-                    className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between text-xs font-bold"
-                  >
-                    <div className="flex items-center gap-1.5 text-zinc-300 truncate">
-                      <Vote className="w-3 h-3 text-rose-400 flex-shrink-0" />
-                      <span className="truncate">{item.voterName}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-[11px]">
-                      <span className="text-zinc-500">➔</span>
-                      <span className={isPas ? 'text-amber-400 font-black' : 'text-rose-400 font-black'}>
-                        {item.targetName}
-                      </span>
-                    </div>
-                  </div>
-                );
-              }
-            })
+            logs.slice(-15).map((log) => (
+              <div key={log.id} className="flex items-start gap-2 border-b border-zinc-800/60 pb-1">
+                <span className="text-zinc-600 text-[10px] shrink-0 mt-0.5">{log.timestamp}</span>
+                <span className="break-words text-zinc-300 font-medium">
+                  {log.text}
+                </span>
+              </div>
+            ))
           )}
-          <div ref={logEndRef} />
         </div>
       )}
     </div>
   );
-};
+}

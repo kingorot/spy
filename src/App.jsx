@@ -1,206 +1,189 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
-import { LobbyScreen } from './components/LobbyScreen';
-import { PlayerRoleBadge } from './components/PlayerRoleBadge';
-import { CardGrid } from './components/CardGrid';
-import { CluePhase } from './components/CluePhase';
-import { ClueTable } from './components/ClueTable';
-import { VotingPhase } from './components/VotingPhase';
-import { SpyGuessPhase } from './components/SpyGuessPhase';
-import { GameLogPanel } from './components/GameLogPanel';
-import { GameOverModal } from './components/GameOverModal';
-import { RulesModal } from './components/RulesModal';
-import { SpyVoluntaryGuessModal } from './components/SpyVoluntaryGuessModal';
-import { networkService } from './services/network';
-import { soundEngine } from './utils/audio';
+import { io } from 'socket.io-client';
+import Header from './components/Header';
+import HomeScreen from './components/HomeScreen';
+import CreateRoomScreen from './components/CreateRoomScreen';
+import LobbyScreen from './components/LobbyScreen';
+import GameScreen from './components/GameScreen';
+import RulesModal from './components/RulesModal';
+import { AlertTriangle, X } from 'lucide-react';
 
-export function App() {
-  const [roomState, setRoomState] = useState(networkService.state);
-  const [myPlayerId, setMyPlayerId] = useState(null);
-  const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [isSpyVoluntaryModalOpen, setIsSpyVoluntaryModalOpen] = useState(false);
+let socket;
+
+export default function App() {
+  const [view, setView] = useState('HOME');
+  const [roomState, setRoomState] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [myPlayerId, setMyPlayerId] = useState('');
 
   useEffect(() => {
-    networkService.onStateChange = (newState) => {
-      setRoomState({ ...newState });
+    // Initialize Socket connection
+    socket = io();
+
+    socket.on('connect', () => {
+      setMyPlayerId(socket.id);
+    });
+
+    socket.on('room_joined', (data) => {
+      setRoomState(data);
+      if (data.gameState === 'LOBBY') {
+        setView('LOBBY');
+      } else {
+        setView('GAME');
+      }
+    });
+
+    socket.on('room_updated', (data) => {
+      setRoomState(data);
+      if (data.gameState === 'LOBBY') {
+        setView('LOBBY');
+      } else {
+        setView('GAME');
+      }
+    });
+
+    socket.on('error_message', (msg) => {
+      setErrorMessage(msg);
+      setTimeout(() => setErrorMessage(null), 4000);
+    });
+
+    // Check URL parameters for direct room joining
+    const params = new URLSearchParams(window.location.search);
+    const roomFromUrl = params.get('room');
+    if (roomFromUrl) {
+      setView('JOIN');
+    }
+
+    return () => {
+      socket.disconnect();
     };
   }, []);
 
-  const handleHostRoom = async (hostName, categoryId, spyCount, customWords = [], gameMode = 'classic', turnDuration = 30) => {
-    const { roomCode, peerId } = await networkService.createRoom(hostName, categoryId, spyCount, customWords, gameMode, turnDuration);
-    setMyPlayerId(peerId);
+  const handleCreateRoom = (nickname) => {
+    if (!socket) return;
+    socket.emit('create_room', { nickname });
   };
 
-  const handleJoinRoom = async (roomCode, playerName) => {
-    const { peerId } = await networkService.joinRoom(roomCode, playerName);
-    setMyPlayerId(peerId);
+  const handleJoinRoom = (roomCode, nickname) => {
+    if (!socket) return;
+    socket.emit('join_room', { roomCode, nickname });
   };
 
-  const handleUpdateSettings = (settings) => {
-    networkService.updateSettings(settings);
+  const handleUpdateOptions = (options) => {
+    if (!socket || !roomState) return;
+    socket.emit('update_room_options', { roomCode: roomState.code, ...options });
+  };
+
+  const handleAddBot = () => {
+    if (!socket || !roomState) return;
+    socket.emit('add_bot', { roomCode: roomState.code });
   };
 
   const handleStartGame = () => {
-    soundEngine.playClick();
-    networkService.startGame();
-  };
-
-  const handleReturnToLobby = () => {
-    soundEngine.playClick();
-    networkService.returnToLobby();
+    if (!socket || !roomState) return;
+    socket.emit('start_game', { roomCode: roomState.code });
   };
 
   const handleSubmitClue = (clueText) => {
-    networkService.submitClue(clueText);
+    if (!socket || !roomState) return;
+    socket.emit('submit_clue', { roomCode: roomState.code, clueText });
   };
 
-  const handleCastVote = (targetId) => {
-    networkService.castVote(targetId);
+  const handleSubmitVote = (targetPlayerId) => {
+    if (!socket || !roomState) return;
+    socket.emit('submit_vote', { roomCode: roomState.code, targetPlayerId });
   };
 
-  const handleSpyGuessSubmit = (wordGuess) => {
-    networkService.submitSpyGuess(wordGuess);
+  const handleSpyGuess = (guessedWord) => {
+    if (!socket || !roomState) return;
+    socket.emit('spy_guess_word', { roomCode: roomState.code, guessedWord });
+  };
+
+  const handleReturnToLobby = () => {
+    if (!socket || !roomState) return;
+    socket.emit('return_to_lobby', { roomCode: roomState.code });
   };
 
   const handleLeaveRoom = () => {
-    soundEngine.playClick();
-    window.location.href = window.location.origin;
+    window.location.href = window.location.pathname;
   };
 
-  const myPlayer = roomState.players.find(p => p.id === myPlayerId) || { name: 'Oyuncu' };
-  const isSpy = roomState.spies.includes(myPlayerId);
-  const isEliminated = (roomState.eliminatedPlayers || []).includes(myPlayerId);
-  const accusedPlayer = roomState.players.find(p => p.id === roomState.accusedPlayerId);
-  const isPlaying = roomState.phase !== 'LOBBY' && roomState.phase !== 'GAME_OVER';
-
   return (
-    <div className="min-h-screen text-slate-100 flex flex-col relative overflow-hidden selection:bg-zinc-800 selection:text-white">
+    <div className="min-h-screen bg-[#0b0c10] text-gray-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-black">
+      {/* Header component */}
       <Header
-        roomCode={roomState.roomCode}
-        player={myPlayer}
-        onOpenRules={() => setIsRulesOpen(true)}
+        roomCode={roomState?.code}
         onLeaveRoom={handleLeaveRoom}
+        onOpenRules={() => setRulesOpen(true)}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
       />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 pb-28 relative z-10">
-        {roomState.phase === 'LOBBY' && (
-          <LobbyScreen
-            roomState={roomState}
-            onHostRoom={handleHostRoom}
-            onJoinRoom={handleJoinRoom}
-            onStartGame={handleStartGame}
-            onUpdateSettings={handleUpdateSettings}
-            isHost={networkService.isHost}
-            myPlayerId={myPlayerId}
-          />
-        )}
-
-        {roomState.phase !== 'LOBBY' && (
-          <div className="space-y-4">
-            <PlayerRoleBadge
-              isSpy={isSpy}
-              secretWord={roomState.secretWord}
-              playerName={myPlayer.name}
-              isEliminated={isEliminated}
-            />
-
-            {roomState.phase === 'CLUE_PHASE' && (
-              <CluePhase
-                turnOrder={roomState.turnOrder}
-                currentTurnIndex={roomState.currentTurnIndex}
-                players={roomState.players}
-                myPlayerId={myPlayerId}
-                onSubmitClue={handleSubmitClue}
-                gameMode={roomState.gameMode}
-                turnDuration={roomState.turnDuration}
-                eliminatedPlayers={roomState.eliminatedPlayers || []}
-              />
-            )}
-
-            {roomState.phase === 'VOTING_PHASE' && (
-              <VotingPhase
-                players={roomState.players}
-                myPlayerId={myPlayerId}
-                onCastVote={handleCastVote}
-                votes={roomState.votes}
-                voteLogs={roomState.voteLogs}
-              />
-            )}
-
-            {roomState.phase === 'SPY_GUESS' && (
-              <SpyGuessPhase
-                words={roomState.words}
-                isSpy={isSpy}
-                onSpyGuessSubmit={handleSpyGuessSubmit}
-                accusedPlayerName={accusedPlayer ? accusedPlayer.name : 'Oyuncu'}
-              />
-            )}
-
-            <CardGrid
-              words={roomState.words}
-              secretWord={roomState.secretWord}
-              isSpy={isSpy}
-            />
-          </div>
-        )}
-      </main>
-
-      {/* Stacked Bottom-Left Panels (İPUÇLARI with fixed player ordering on top of GEÇMİŞ) */}
-      {roomState.roomCode && (
-        <div className="fixed bottom-4 left-4 z-30 flex flex-col gap-2 items-start max-w-[calc(100vw-2rem)] sm:max-w-sm pointer-events-none">
-          {roomState.phase !== 'LOBBY' && (
-            <div className="pointer-events-auto w-full">
-              <ClueTable
-                clueLogs={roomState.clueLogs}
-                players={roomState.players}
-                turnOrder={roomState.turnOrder}
-              />
-            </div>
-          )}
-          <div className="pointer-events-auto w-full">
-            <GameLogPanel clueLogs={roomState.clueLogs} voteLogs={roomState.voteLogs} />
-          </div>
+      {/* Error Toast notification */}
+      {errorMessage && (
+        <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 bg-red-950 border border-red-500 text-red-200 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs md:text-sm font-semibold animate-bounce">
+          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+          <span>{errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} className="ml-2 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* Floating Bottom-Right Voluntary Guess Button for SPY */}
-      {isSpy && isPlaying && !isEliminated && (
-        <button
-          onClick={() => { soundEngine.playClick(); setIsSpyVoluntaryModalOpen(true); }}
-          className="fixed bottom-4 right-4 z-40 px-4 py-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-xs sm:text-sm flex items-center justify-center shadow-2xl transition-all"
-        >
-          <span>KELİMEYİ TAHMİN ET</span>
-        </button>
-      )}
+      {/* View routing */}
+      <main className="flex-1 flex flex-col">
+        {view === 'HOME' && (
+          <HomeScreen
+            onCreateRoomClick={() => setView('CREATE')}
+            onJoinRoomClick={() => setView('JOIN')}
+          />
+        )}
 
-      {/* GameOver Modal */}
-      {roomState.phase === 'GAME_OVER' && (
-        <GameOverModal
-          winner={roomState.winner}
-          secretWord={roomState.secretWord}
-          spies={roomState.spies}
-          players={roomState.players}
-          isHost={networkService.isHost}
-          onReturnToLobby={handleReturnToLobby}
-        />
-      )}
+        {view === 'CREATE' && (
+          <CreateRoomScreen
+            mode="CREATE"
+            onCreateRoom={handleCreateRoom}
+            onBack={() => setView('HOME')}
+          />
+        )}
 
-      {/* Spy Voluntary Guess Modal */}
-      {isSpyVoluntaryModalOpen && (
-        <SpyVoluntaryGuessModal
-          words={roomState.words}
-          onClose={() => setIsSpyVoluntaryModalOpen(false)}
-          onSubmitGuess={(guess) => networkService.submitSpyGuess(guess)}
-        />
-      )}
+        {view === 'JOIN' && (
+          <CreateRoomScreen
+            mode="JOIN"
+            onJoinRoom={handleJoinRoom}
+            onBack={() => setView('HOME')}
+          />
+        )}
+
+        {view === 'LOBBY' && roomState && (
+          <LobbyScreen
+            roomState={roomState}
+            myPlayerId={myPlayerId}
+            onUpdateOptions={handleUpdateOptions}
+            onStartGame={handleStartGame}
+            onAddBot={handleAddBot}
+          />
+        )}
+
+        {view === 'GAME' && roomState && (
+          <GameScreen
+            roomState={roomState}
+            myPlayerId={myPlayerId}
+            onSubmitClue={handleSubmitClue}
+            onSubmitVote={handleSubmitVote}
+            onSpyGuess={handleSpyGuess}
+            onReturnToLobby={handleReturnToLobby}
+          />
+        )}
+      </main>
 
       {/* Rules Modal */}
-      {isRulesOpen && (
-        <RulesModal onClose={() => setIsRulesOpen(false)} />
-      )}
+      <RulesModal
+        isOpen={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+      />
     </div>
   );
 }

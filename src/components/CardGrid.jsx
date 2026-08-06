@@ -1,65 +1,74 @@
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
-import { soundEngine } from '../utils/audio';
-import { CATEGORIES } from '../data/categories';
+import { sounds } from '../utils/audio';
 
-export const CardGrid = ({ words = [], secretWord = '', isSpy = false }) => {
-  const [flippedIndices, setFlippedIndices] = useState({});
+export default function CardGrid({ cards, secretWord, isSpy, isMyTurn, onSpyGuess }) {
+  const [markedCards, setMarkedCards] = useState({});
 
-  const activeWords = words && words.length >= 20 ? words : CATEGORIES[0].words.slice(0, 20);
-
-  const toggleFlip = (e, index) => {
-    if (e) {
-      e.preventDefault();
-    }
-    soundEngine.playClick();
-    setFlippedIndices(prev => ({
+  const toggleMarkCard = (card) => {
+    sounds.playClick();
+    setMarkedCards(prev => ({
       ...prev,
-      [index]: !prev[index]
+      [card]: !prev[card]
     }));
   };
 
   return (
-    <div className="my-3">
-      {/* 20 Cards Matrix */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
-        {activeWords.map((word, idx) => {
-          const isSecret = !isSpy && secretWord && word.toLowerCase() === secretWord.toLowerCase();
-          const isFlipped = flippedIndices[idx];
+    <div className="w-full max-w-4xl mx-auto my-4 px-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3.5">
+        {cards.map((card, idx) => {
+          const isSecret = !isSpy && secretWord && card.toLowerCase() === secretWord.toLowerCase();
+          const isMarked = markedCards[card];
 
           return (
             <div
               key={idx}
-              onClick={(e) => toggleFlip(e, idx)}
-              className="card-flip-container h-[82px] sm:h-[94px] cursor-pointer select-none touch-manipulation"
+              onClick={() => toggleMarkCard(card)}
+              className={`
+                relative h-20 md:h-24 rounded-2xl p-3 flex flex-col items-center justify-center text-center select-none cursor-pointer transition-all duration-200 transform active:scale-95 shadow-md overflow-hidden
+                ${isSecret
+                  ? 'bg-[#0f241a] border-2 border-emerald-500 text-emerald-300 font-extrabold ring-2 ring-emerald-500/30'
+                  : isMarked
+                    ? 'bg-[#07080c] border border-zinc-700/80 shadow-inner'
+                    : 'bg-[#14151c] hover:bg-[#1c1d27] border border-zinc-800 text-zinc-100 font-semibold hover:border-zinc-700'
+                }
+              `}
             >
-              <div className={`card-flip-inner ${isFlipped ? 'is-flipped' : ''}`}>
-                {/* FRONT FACE (Word centered in middle of card) */}
-                <div
-                  className={`card-face-front p-3 border flex items-center justify-center text-center relative shadow-md transition-all ${
-                    isSecret
-                      ? 'card-secret-emerald'
-                      : 'glass-card-matrix hover:border-zinc-500'
-                  }`}
-                >
-                  <p className={`text-xs sm:text-sm font-black tracking-wide break-words text-center ${
-                    isSecret ? 'text-emerald-100 text-sm sm:text-base font-black' : 'text-zinc-100'
-                  }`}>
-                    {word}
-                  </p>
-                </div>
+              {/* Card text - hidden when marked as requested */}
+              {!isMarked && (
+                <span className={`text-sm md:text-base tracking-wide z-10 ${isSecret ? 'font-extrabold text-emerald-200' : 'font-medium'}`}>
+                  {card}
+                </span>
+              )}
 
-                {/* BACK FACE (Minimal logo card back) */}
-                <div className="card-face-back p-3 border border-zinc-800 flex items-center justify-center shadow-inner relative overflow-hidden bg-zinc-950">
-                  <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center shadow">
-                    <Eye className="w-4 h-4 text-zinc-200" />
+              {/* Prominent SPY Logo Overlay when marked */}
+              {isMarked && (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#07080c]/90">
+                  <div className="w-12 h-12 rounded-xl bg-zinc-900/90 border border-zinc-600 flex items-center justify-center shadow-lg">
+                    <Eye className="w-7 h-7 text-white stroke-[2.5]" />
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Optional Spy Quick Guess Hover Button */}
+              {isSpy && isMyTurn && !isMarked && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sounds.playClick();
+                    if (window.confirm(`"${card}" kelimesini gizli kelime olarak tahmin etmek istiyor musunuz?`)) {
+                      onSpyGuess(card);
+                    }
+                  }}
+                  className="absolute top-1 right-1 opacity-0 hover:opacity-100 bg-white hover:bg-zinc-200 text-black text-[10px] font-bold px-1.5 py-0.5 rounded shadow transition z-20"
+                >
+                  Tahmin Et
+                </button>
+              )}
             </div>
           );
         })}
       </div>
     </div>
   );
-};
+}

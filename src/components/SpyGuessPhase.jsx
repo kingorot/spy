@@ -1,81 +1,62 @@
 import React, { useState } from 'react';
-import { Target, ShieldAlert, Check } from 'lucide-react';
-import { soundEngine } from '../utils/audio';
+import { Target } from 'lucide-react';
+import { sounds } from '../utils/audio';
 
-export const SpyGuessPhase = ({
-  words,
-  isSpy,
-  onSpyGuessSubmit,
-  accusedPlayerName
-}) => {
-  const [selectedWord, setSelectedWord] = useState(null);
+export default function SpyGuessPhase({ roomState, myPlayerId, onSpyGuess }) {
+  const [selectedWord, setSelectedWord] = useState('');
 
-  const handleConfirmGuess = () => {
-    if (!selectedWord) return;
-    soundEngine.playClick();
-    onSpyGuessSubmit(selectedWord);
+  if (!roomState) return null;
+
+  const accusedPlayer = roomState.players.find(p => p.id === roomState.accusedPlayerId);
+  const isAccusedSpy = roomState.accusedPlayerId === myPlayerId;
+
+  const handleSubmit = (word) => {
+    sounds.playClick();
+    onSpyGuess(word);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-md">
-      <div className="glass-panel p-6 rounded-2xl border border-rose-500/50 max-w-2xl w-full space-y-4 shadow-2xl relative">
-        {!isSpy ? (
-          <div className="text-center space-y-3 py-4">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center mx-auto">
-              <ShieldAlert className="w-6 h-6 text-rose-400" />
-            </div>
-            <h2 className="text-xl font-black text-white uppercase">
-              CASUS YAKALANDI! ({accusedPlayerName})
-            </h2>
-            <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-rose-300 font-bold">
-              Casus son kelime tahminini yapıyor...
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
+      <div className="w-full max-w-xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center">
+        <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center mb-3">
+          <Target className="w-7 h-7 text-white" />
+        </div>
+
+        <h2 className="text-2xl font-extrabold text-white tracking-widest font-mono mb-1">
+          CASUS YAKALANDI
+        </h2>
+        <p className="text-xs text-zinc-300 font-semibold mb-4">
+          {accusedPlayer?.name || 'Casus'} casus olarak suçlandı. Casus için son şans.
+        </p>
+
+        {isAccusedSpy ? (
+          <div className="w-full">
+            <p className="text-sm text-zinc-200 mb-4 font-bold">
+              Sen Casussun. Aşağıdaki 20 karttan hangisinin GİZLİ KELİME olduğunu doğru tahmin edersen KAZANIRSIN:
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800">
+              {roomState.cards.map((card, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSubmit(card)}
+                  className="bg-[#171822] hover:bg-white hover:text-black text-zinc-200 border border-zinc-700 font-bold py-2.5 px-2 rounded-xl text-xs transition shadow-sm active:scale-95"
+                >
+                  {card}
+                </button>
+              ))}
             </div>
           </div>
         ) : (
-          <>
-            <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs font-black uppercase tracking-wider">
-                <Target className="w-3.5 h-3.5" /> SON TAHMİN HAKKI
-              </div>
-              <h2 className="text-xl font-black text-white uppercase">
-                GİZLİ KELİMEYİ TAHMİN ET
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[50vh] overflow-y-auto p-1">
-              {words.map((word, idx) => {
-                const isSelected = selectedWord === word;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => { soundEngine.playClick(); setSelectedWord(word); }}
-                    className={`p-2.5 rounded-xl border text-center font-black text-xs transition-all h-[55px] flex flex-col items-center justify-center ${
-                      isSelected
-                        ? 'bg-white text-zinc-950 border-white scale-105 shadow-lg'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-200 hover:border-zinc-500'
-                    }`}
-                  >
-                    <span>{word}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={handleConfirmGuess}
-              disabled={!selectedWord}
-              className={`w-full py-3.5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${
-                selectedWord
-                  ? 'bg-white hover:bg-zinc-200 text-zinc-950 cursor-pointer shadow-lg'
-                  : 'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800'
-              }`}
-            >
-              <span>{selectedWord ? `"${selectedWord}" TAHMİN ET` : 'KART SEÇİN'}</span>
-            </button>
-          </>
+          <div className="w-full bg-[#161720] border border-zinc-800 rounded-xl p-6 text-zinc-300 font-medium text-sm">
+            <p className="font-bold text-white mb-2">
+              {accusedPlayer?.name} son tahminini yapıyor...
+            </p>
+            <p className="text-xs text-zinc-400">
+              Gizli kelimeyi doğru tahmin ederse Casus kazanır, yanlış tahmin ederse Siviller kazanır.
+            </p>
+          </div>
         )}
       </div>
     </div>
   );
-};
+}
