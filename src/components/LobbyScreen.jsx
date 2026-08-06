@@ -12,7 +12,7 @@ const ICON_MAP = { Utensils, Dog, Globe, Briefcase, Film, Box, Trophy };
 
 const GAME_MODES = [
   { id: 'classic', name: 'Klasik Mod', desc: 'Siviller kelimeyi bilir, casus kelimeyi tahmin etmeye çalışır.' },
-  { id: 'timed', name: 'Zamana Karşı', desc: 'Her tur için 30 saniye süre sınırı.' },
+  { id: 'timed', name: 'Zamana Karşı (30s)', desc: 'Her tur için 30 saniye süre sınırı.' },
   { id: 'double', name: 'Çift Casus', desc: 'Oyun alanında 2 casus birbirini tanımadan yarışır.' }
 ];
 
@@ -36,9 +36,22 @@ export const LobbyScreen = ({
   const [nickname, setNickname] = useState(getRandomDefaultNickname());
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Local synced settings for instant responsiveness
+  const [selectedCategory, setSelectedCategory] = useState(roomState.category || 'food');
+  const [selectedGameMode, setSelectedGameMode] = useState(roomState.gameMode || 'classic');
+  const [selectedSpyCount, setSelectedSpyCount] = useState(roomState.spyCount || 1);
+
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isGameModeDropdownOpen, setIsGameModeDropdownOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
+
+  // Sync local state when roomState updates from server
+  useEffect(() => {
+    if (roomState.category) setSelectedCategory(roomState.category);
+    if (roomState.gameMode) setSelectedGameMode(roomState.gameMode);
+    if (roomState.spyCount) setSelectedSpyCount(roomState.spyCount);
+  }, [roomState.category, roomState.gameMode, roomState.spyCount]);
 
   // Auto-detect room parameter from URL share link
   useEffect(() => {
@@ -62,7 +75,7 @@ export const LobbyScreen = ({
     e.preventDefault();
     if (!nickname.trim()) return;
     soundEngine.playClick();
-    onHostRoom(nickname.trim(), 'food', 1, []);
+    onHostRoom(nickname.trim(), 'food', 1, [], 'classic');
   };
 
   const handleJoinSubmit = (e) => {
@@ -72,34 +85,41 @@ export const LobbyScreen = ({
     onJoinRoom(roomCodeInput.trim().toUpperCase(), nickname.trim());
   };
 
-  const handleCategorySelect = (catId) => {
+  const handleCategoryClick = (catId) => {
     soundEngine.playClick();
     if (catId === 'custom') {
       setIsCategoryDropdownOpen(false);
       setIsCustomThemeModalOpen(true);
     } else {
-      onUpdateSettings({ category: catId, customWords: [] });
+      setSelectedCategory(catId);
       setIsCategoryDropdownOpen(false);
+      onUpdateSettings({ category: catId, customWords: [] });
     }
   };
 
-  const handleGameModeSelect = (modeId) => {
+  const handleGameModeClick = (modeId) => {
     soundEngine.playClick();
-    onUpdateSettings({ gameMode: modeId });
+    setSelectedGameMode(modeId);
     setIsGameModeDropdownOpen(false);
+    onUpdateSettings({ gameMode: modeId });
   };
 
-  const currentCategoryObj = CATEGORIES.find(c => c.id === roomState.category) || {
+  const handleSpyCountChange = (val) => {
+    const cnt = Math.max(1, parseInt(val, 10) || 1);
+    setSelectedSpyCount(cnt);
+    onUpdateSettings({ spyCount: cnt });
+  };
+
+  const currentCategoryObj = CATEGORIES.find(c => c.id === selectedCategory) || {
     id: 'food',
-    name: roomState.category === 'custom' ? 'Özel Tema' : 'Yemekler & İçecekler',
+    name: selectedCategory === 'custom' ? 'Özel Tema' : 'Yemekler & İçecekler',
     icon: 'Utensils'
   };
   const CurrentCatIcon = ICON_MAP[currentCategoryObj.icon] || Box;
+  const currentModeObj = GAME_MODES.find(m => m.id === selectedGameMode) || GAME_MODES[0];
 
   if (roomState.roomCode) {
     const roomUrl = `${window.location.origin}?room=${roomState.roomCode}`;
-    const spyCount = roomState.spyCount || 1;
-    const currentModeObj = GAME_MODES.find(m => m.id === roomState.gameMode) || GAME_MODES[0];
 
     return (
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-4 relative">
@@ -163,12 +183,12 @@ export const LobbyScreen = ({
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {CATEGORIES.map((cat) => {
                         const IconComponent = ICON_MAP[cat.icon] || Box;
-                        const isSelected = roomState.category === cat.id;
+                        const isSelected = selectedCategory === cat.id;
                         return (
                           <button
                             key={cat.id}
                             type="button"
-                            onClick={() => handleCategorySelect(cat.id)}
+                            onClick={() => handleCategoryClick(cat.id)}
                             className={`p-2.5 rounded-xl border text-left flex items-center gap-2 text-xs font-bold transition-all ${
                               isSelected
                                 ? 'bg-white text-zinc-950 border-white font-black shadow-md'
@@ -183,9 +203,9 @@ export const LobbyScreen = ({
 
                       <button
                         type="button"
-                        onClick={() => handleCategorySelect('custom')}
+                        onClick={() => handleCategoryClick('custom')}
                         className={`p-2.5 rounded-xl border text-left flex items-center gap-2 text-xs font-bold transition-all ${
-                          roomState.category === 'custom'
+                          selectedCategory === 'custom'
                             ? 'bg-white text-zinc-950 border-white font-black shadow-md'
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700'
                         }`}
@@ -235,12 +255,12 @@ export const LobbyScreen = ({
                 {isGameModeDropdownOpen && (
                   <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 shadow-2xl animate-in fade-in slide-in-from-top-2">
                     {GAME_MODES.map((m) => {
-                      const isSelected = (roomState.gameMode || 'classic') === m.id;
+                      const isSelected = selectedGameMode === m.id;
                       return (
                         <button
                           key={m.id}
                           type="button"
-                          onClick={() => handleGameModeSelect(m.id)}
+                          onClick={() => handleGameModeClick(m.id)}
                           className={`w-full p-3 rounded-xl border text-left transition-all ${
                             isSelected
                               ? 'bg-white text-zinc-950 border-white font-black shadow-md'
@@ -275,16 +295,13 @@ export const LobbyScreen = ({
                 type="number"
                 min={1}
                 max={Math.max(1, roomState.players.length - 1)}
-                value={spyCount}
-                onChange={(e) => {
-                  const val = Math.max(1, parseInt(e.target.value, 10) || 1);
-                  onUpdateSettings({ spyCount: val });
-                }}
+                value={selectedSpyCount}
+                onChange={(e) => handleSpyCountChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black text-sm focus:outline-none focus:border-zinc-500 shadow-md"
               />
             ) : (
               <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-black text-white">
-                {spyCount} Casus
+                {selectedSpyCount} Casus
               </div>
             )}
           </div>
@@ -351,6 +368,7 @@ export const LobbyScreen = ({
             initialWords={roomState.customWords || []}
             onClose={() => setIsCustomThemeModalOpen(false)}
             onSaveCustomTheme={(wordsArray) => {
+              setSelectedCategory('custom');
               onUpdateSettings({ category: 'custom', customWords: wordsArray });
             }}
           />

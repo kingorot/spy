@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Send, UserCheck, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, UserCheck, Clock, Timer } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 
 export const CluePhase = ({
@@ -7,13 +7,36 @@ export const CluePhase = ({
   currentTurnIndex,
   players,
   myPlayerId,
-  onSubmitClue
+  onSubmitClue,
+  gameMode = 'classic'
 }) => {
   const [clueText, setClueText] = useState('');
+  const [timeLeft, setTimeLeft] = useState(30);
 
   const currentTurnPlayerId = turnOrder[currentTurnIndex];
   const activePlayer = players.find(p => p.id === currentTurnPlayerId) || { name: 'Oyuncu' };
   const isMyTurn = currentTurnPlayerId === myPlayerId;
+
+  // 30-Second Timed Mode Countdown
+  useEffect(() => {
+    if (gameMode !== 'timed') return;
+
+    setTimeLeft(30);
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          if (isMyTurn) {
+            onSubmitClue('Süre Doldu (Otomatik Pas)');
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentTurnIndex, gameMode, isMyTurn, onSubmitClue]);
 
   const handleClueSubmit = (e) => {
     e.preventDefault();
@@ -44,9 +67,23 @@ export const CluePhase = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-          <Clock className="w-3.5 h-3.5 text-zinc-500" />
-          <span>Sıradaki: {turnOrder[currentTurnIndex + 1] ? (players.find(p => p.id === turnOrder[currentTurnIndex + 1])?.name || 'Sonraki') : 'Oylama'}</span>
+        {/* Timed Mode Timer or Next Player Indicator */}
+        <div className="flex items-center gap-2">
+          {gameMode === 'timed' && (
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black border transition-all ${
+              timeLeft <= 5
+                ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 animate-pulse'
+                : 'bg-zinc-800 text-amber-400 border-amber-500/30'
+            }`}>
+              <Timer className="w-3.5 h-3.5" />
+              <span>{timeLeft}s</span>
+            </div>
+          )}
+
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400">
+            <Clock className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Sıradaki: {turnOrder[currentTurnIndex + 1] ? (players.find(p => p.id === turnOrder[currentTurnIndex + 1])?.name || 'Sonraki') : 'Oylama'}</span>
+          </div>
         </div>
       </div>
 
@@ -62,7 +99,7 @@ export const CluePhase = ({
           />
           <button
             type="submit"
-            className="px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-xs flex items-center gap-1.5 shadow"
+            className="px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-xs flex items-center gap-1.5 shadow cursor-pointer"
           >
             <span>Gönder</span>
             <Send className="w-3.5 h-3.5" />

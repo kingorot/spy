@@ -112,6 +112,7 @@ export function App() {
                 players={roomState.players}
                 myPlayerId={myPlayerId}
                 onSubmitClue={handleSubmitClue}
+                gameMode={roomState.gameMode}
               />
             )}
 
