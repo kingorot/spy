@@ -33,9 +33,13 @@ class NetworkService {
 
   connectSocket() {
     if (!this.socket) {
-      const serverUrl = window.location.hostname === 'localhost'
-        ? 'http://localhost:4000'
-        : `http://${window.location.hostname}:4000`;
+      // Allow custom server URL via env or fallback to localhost during dev
+      const customUrl = import.meta.env.VITE_SERVER_URL;
+      const serverUrl = customUrl || (
+        window.location.hostname === 'localhost'
+          ? 'http://localhost:4000'
+          : `https://${window.location.hostname}`
+      );
 
       this.socket = io(serverUrl, {
         transports: ['websocket', 'polling']
