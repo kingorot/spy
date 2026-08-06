@@ -138,9 +138,18 @@ export function App() {
         )}
       </main>
 
-      {/* Floating Bottom-Left Clue Table (Positioned directly above GEÇMİŞ) */}
-      {roomState.roomCode && roomState.phase !== 'LOBBY' && (
-        <ClueTable clueLogs={roomState.clueLogs} players={roomState.players} />
+      {/* Stacked Bottom-Left Panels (İPUÇLARI on top of GEÇMİŞ, zero overlap!) */}
+      {roomState.roomCode && (
+        <div className="fixed bottom-4 left-4 z-30 flex flex-col gap-2 items-start max-w-[calc(100vw-2rem)] sm:max-w-sm pointer-events-none">
+          {roomState.phase !== 'LOBBY' && (
+            <div className="pointer-events-auto w-full">
+              <ClueTable clueLogs={roomState.clueLogs} players={roomState.players} />
+            </div>
+          )}
+          <div className="pointer-events-auto w-full">
+            <GameLogPanel clueLogs={roomState.clueLogs} voteLogs={roomState.voteLogs} />
+          </div>
+        </div>
       )}
 
       {/* Floating Bottom-Right Voluntary Guess Button for SPY */}
@@ -151,14 +160,6 @@ export function App() {
         >
           <span>KELİMEYİ TAHMİN ET</span>
         </button>
-      )}
-
-      {/* Game & Vote Log Panel (GEÇMİŞ) */}
-      {roomState.roomCode && (
-        <GameLogPanel
-          clueLogs={roomState.clueLogs}
-          voteLogs={roomState.voteLogs}
-        />
       )}
 
       {/* GameOver Modal */}
