@@ -255,12 +255,9 @@ io.on('connection', (socket) => {
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
     const secretWord = words[Math.floor(Math.random() * words.length)];
     const playerIds = room.players.map(p => p.id);
-    
-    // Unbiased Fisher-Yates random spy selection
+
     const shuffledForSpies = shuffleArray(playerIds);
     const spies = shuffledForSpies.slice(0, room.spyCount);
-
-    // Unbiased Fisher-Yates random turn order
     const turnOrder = shuffleArray(playerIds);
 
     room.phase = 'CLUE_PHASE';
@@ -274,7 +271,7 @@ io.on('connection', (socket) => {
       {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         senderName: 'Sistem',
-        text: `1. Tur Başladı.`
+        text: `${room.roundNumber}. Tur Başladı.`
       }
     ];
     room.votes = {};
@@ -286,14 +283,27 @@ io.on('connection', (socket) => {
     broadcastState(roomCode);
   });
 
-  // 4. RETURN TO LOBBY
+  // 4. RETURN TO LOBBY (Reset room state and return all players to lobby)
   socket.on('RETURN_TO_LOBBY', ({ roomCode }) => {
-    const room = rooms.get(roomCode);
-    if (!room || room.hostId !== socket.id) return;
+    const code = (roomCode || '').toUpperCase().trim();
+    const room = rooms.get(code);
+    if (!room) return;
 
     room.phase = 'LOBBY';
-    addLogMessage(room, `Lobiye dönüldü.`);
-    broadcastState(roomCode);
+    room.words = [];
+    room.secretWord = '';
+    room.spies = [];
+    room.currentTurnIndex = 0;
+    room.roundNumber = 1;
+    room.clueLogs = [];
+    room.votes = {};
+    room.voteLogs = [];
+    room.accusedPlayerId = null;
+    room.spyGuess = null;
+    room.winner = null;
+
+    addLogMessage(room, 'Lobiye dönüldü.');
+    broadcastState(code);
   });
 
   // 5. SUBMIT CLUE

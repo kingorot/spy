@@ -44,19 +44,13 @@ export const GameOverModal = ({
           </div>
         </div>
 
-        {isHost ? (
-          <button
-            onClick={() => { soundEngine.playClick(); onReturnToLobby(); }}
-            className="w-full py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base flex items-center justify-center gap-2 shadow-lg transition-all"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>LOBİYE DÖN</span>
-          </button>
-        ) : (
-          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-400">
-            Ev sahibinin lobiye dönmesi bekleniyor...
-          </div>
-        )}
+        <button
+          onClick={() => { soundEngine.playClick(); onReturnToLobby(); }}
+          className="w-full py-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>LOBİYE DÖN</span>
+        </button>
       </div>
     </div>
   );
