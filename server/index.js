@@ -250,7 +250,7 @@ io.on('connection', (socket) => {
   // 3. START GAME
   socket.on('START_GAME', ({ roomCode }) => {
     const room = rooms.get(roomCode);
-    if (!room || (room.hostId !== socket.id && !room.players.find(p => p.id === socket.id)?.isHost)) return;
+    if (!room) return;
 
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
     const secretWord = words[Math.floor(Math.random() * words.length)];
@@ -283,32 +283,51 @@ io.on('connection', (socket) => {
     broadcastState(roomCode);
   });
 
-  // 4. RETURN TO LOBBY (Reset room state and return all players to lobby)
+  // 4. RETURN TO LOBBY (Instantly resets room state to a fresh new lobby for all connected players)
   socket.on('RETURN_TO_LOBBY', ({ roomCode }) => {
     const code = (roomCode || '').toUpperCase().trim();
     const room = rooms.get(code);
     if (!room) return;
 
-    const player = room.players.find(p => p.id === socket.id);
-    const isHost = room.hostId === socket.id || (player && player.isHost);
+    const cleanPlayers = room.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      isHost: p.id === room.hostId || p.isHost,
+      isReady: true
+    }));
 
-    if (!isHost) return;
+    const freshLobbyState = {
+      roomCode: code,
+      hostId: room.hostId,
+      players: cleanPlayers,
+      phase: 'LOBBY',
+      category: room.category || 'food',
+      customWords: [],
+      spyCount: room.spyCount || 1,
+      words: [],
+      secretWord: '',
+      spies: [],
+      turnOrder: [],
+      currentTurnIndex: 0,
+      roundNumber: 1,
+      clueLogs: [
+        {
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          senderName: 'Sistem',
+          text: 'Yeni Lobiye Dönüldü.'
+        }
+      ],
+      votes: {},
+      voteLogs: [],
+      accusedPlayerId: null,
+      spyGuess: null,
+      winner: null
+    };
 
-    room.phase = 'LOBBY';
-    room.words = [];
-    room.secretWord = '';
-    room.spies = [];
-    room.currentTurnIndex = 0;
-    room.roundNumber = 1;
-    room.clueLogs = [];
-    room.votes = {};
-    room.voteLogs = [];
-    room.accusedPlayerId = null;
-    room.spyGuess = null;
-    room.winner = null;
+    rooms.set(code, freshLobbyState);
 
-    addLogMessage(room, 'Lobiye dönüldü.');
-    broadcastState(code);
+    // Broadcast clean fresh lobby state to ALL clients in the room!
+    io.to(code).emit('STATE_UPDATE', freshLobbyState);
   });
 
   // 5. SUBMIT CLUE
