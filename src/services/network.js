@@ -51,7 +51,8 @@ class NetworkService {
       });
 
       this.socket.on('STATE_UPDATE', (newState) => {
-        this.state = { ...this.state, ...newState };
+        // Direct authoritative state update from server
+        this.state = newState;
         if (newState.roomCode) {
           this.roomCode = newState.roomCode;
         }
@@ -110,49 +111,42 @@ class NetworkService {
   }
 
   updateSettings(settings) {
-    // 1. Optimistic instant local state update
-    this.state = { ...this.state, ...settings };
-    if (this.onStateChange) {
-      this.onStateChange(this.state);
-    }
-
-    // 2. Emit to socket backend
-    const code = this.roomCode || this.state.roomCode;
+    const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
     if (this.socket && code) {
       this.socket.emit('UPDATE_SETTINGS', { roomCode: code, ...settings });
     }
   }
 
   startGame() {
-    const code = this.roomCode || this.state.roomCode;
+    const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
     if (this.socket && code) {
       this.socket.emit('START_GAME', { roomCode: code });
     }
   }
 
   returnToLobby() {
-    const code = this.roomCode || this.state.roomCode;
+    const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
     if (this.socket && code) {
       this.socket.emit('RETURN_TO_LOBBY', { roomCode: code });
     }
   }
 
   submitClue(clueText) {
-    const code = this.roomCode || this.state.roomCode;
+    const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
     if (this.socket && code) {
       this.socket.emit('SUBMIT_CLUE', { roomCode: code, clueText });
     }
   }
 
   castVote(targetId) {
-    const code = this.roomCode || this.state.roomCode;
+    const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
     if (this.socket && code) {
       this.socket.emit('CAST_VOTE', { roomCode: code, targetId });
     }
   }
 
   submitSpyGuess(wordGuess) {
-    const code = this.roomCode || this.state.roomCode;
+    const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
     if (this.socket && code) {
       this.socket.emit('SPY_GUESS_SUBMIT', { roomCode: code, wordGuess });
     }

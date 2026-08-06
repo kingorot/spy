@@ -50,6 +50,7 @@ function broadcastState(roomCode) {
   const code = (roomCode || '').toUpperCase().trim();
   const room = rooms.get(code);
   if (!room) return;
+  console.log(`📢 Broadcasting state for room: [${code}], phase: ${room.phase}, category: ${room.category}, mode: ${room.gameMode}`);
   io.to(code).emit('STATE_UPDATE', room);
 }
 
@@ -229,6 +230,7 @@ io.on('connection', (socket) => {
     };
 
     rooms.set(roomCode, roomState);
+    console.log(`🏠 Oda Oluşturuldu: [${roomCode}] Ev Sahibi: ${hostName}`);
 
     if (callback) callback({ roomCode, peerId: socket.id });
     broadcastState(roomCode);
@@ -281,6 +283,7 @@ io.on('connection', (socket) => {
       room.gameMode = data.gameMode;
     }
 
+    console.log(`⚙️ Room [${room.roomCode}] settings updated: Category=${room.category}, Mode=${room.gameMode}, Spies=${room.spyCount}`);
     broadcastState(room.roomCode);
   });
 
@@ -309,7 +312,7 @@ io.on('connection', (socket) => {
       {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         senderName: 'Sistem',
-        text: `${room.roundNumber}. Tur Başladı.`
+        text: `1. Tur Başladı.`
       }
     ];
     room.votes = {};
@@ -318,6 +321,7 @@ io.on('connection', (socket) => {
     room.spyGuess = null;
     room.winner = null;
 
+    console.log(`🚀 Oyun Başladı! Oda: [${room.roomCode}], Kategori: ${room.category}, Secret: ${secretWord}`);
     broadcastState(room.roomCode);
   });
 
@@ -363,6 +367,7 @@ io.on('connection', (socket) => {
     };
 
     rooms.set(room.roomCode, freshLobbyState);
+    console.log(`🔄 Oda [${room.roomCode}] Lobiye Dönüş Yaptı.`);
     broadcastState(room.roomCode);
   });
 
