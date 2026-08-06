@@ -50,17 +50,27 @@ function broadcastState(roomCode) {
   const code = (roomCode || '').toUpperCase().trim();
   const room = rooms.get(code);
   if (!room) return;
-  console.log(`📢 Broadcasting state for room: [${code}], phase: ${room.phase}, category: ${room.category}, mode: ${room.gameMode}`);
+  console.log(`📢 Broadcasting state for room [${code}], Phase: ${room.phase}, Category: ${room.category}, Mode: ${room.gameMode}`);
   io.to(code).emit('STATE_UPDATE', room);
 }
 
-function getRoomAndEnsureSocket(socket, roomCode) {
+function findRoomBySocket(socket, roomCode) {
   const code = (roomCode || '').toUpperCase().trim();
-  if (!code) return null;
-  const room = rooms.get(code);
-  if (!room) return null;
-  socket.join(code);
-  return room;
+  if (code && rooms.has(code)) {
+    const room = rooms.get(code);
+    socket.join(code);
+    return room;
+  }
+
+  // Fallback: search for room containing socket.id
+  for (const [c, room] of rooms.entries()) {
+    if (room.players.some(p => p.id === socket.id)) {
+      socket.join(c);
+      return room;
+    }
+  }
+
+  return null;
 }
 
 function handleClueSubmit(roomCode, senderId, clueText) {
@@ -266,30 +276,23 @@ io.on('connection', (socket) => {
 
   // 3. UPDATE SETTINGS (In Lobby)
   socket.on('UPDATE_SETTINGS', (data) => {
-    const roomCode = data.roomCode || data.code;
-    const room = getRoomAndEnsureSocket(socket, roomCode);
+    const roomCode = data?.roomCode || data?.code;
+    const room = findRoomBySocket(socket, roomCode);
     if (!room) return;
 
-    if (data.category !== undefined && data.category !== null) {
-      room.category = data.category;
-    }
-    if (data.spyCount !== undefined && data.spyCount !== null) {
-      room.spyCount = Math.max(1, parseInt(data.spyCount, 10) || 1);
-    }
-    if (data.customWords !== undefined && Array.isArray(data.customWords)) {
-      room.customWords = data.customWords;
-    }
-    if (data.gameMode !== undefined && data.gameMode !== null) {
-      room.gameMode = data.gameMode;
-    }
+    if (data.category) room.category = data.category;
+    if (data.gameMode) room.gameMode = data.gameMode;
+    if (data.spyCount) room.spyCount = Math.max(1, parseInt(data.spyCount, 10) || 1);
+    if (data.customWords && Array.isArray(data.customWords)) room.customWords = data.customWords;
 
-    console.log(`⚙️ Room [${room.roomCode}] settings updated: Category=${room.category}, Mode=${room.gameMode}, Spies=${room.spyCount}`);
+    console.log(`⚙️ Room [${room.roomCode}] settings updated: Category=${room.category}, Mode=${room.gameMode}`);
     broadcastState(room.roomCode);
   });
 
   // 4. START GAME
-  socket.on('START_GAME', ({ roomCode }) => {
-    const room = getRoomAndEnsureSocket(socket, roomCode);
+  socket.on('START_GAME', (data) => {
+    const roomCode = data?.roomCode || data?.code;
+    const room = findRoomBySocket(socket, roomCode);
     if (!room) return;
 
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
@@ -297,8 +300,7 @@ io.on('connection', (socket) => {
     const playerIds = room.players.map(p => p.id);
 
     const activeSpyCount = Math.max(1, Math.min(room.spyCount || 1, Math.max(1, playerIds.length - 1)));
-    const shuffledForSpies = shuffleArray(playerIds);
-    const spies = shuffledForSpies.slice(0, activeSpyCount);
+    const spies = shuffleArray(playerIds).slice(0, activeSpyCount);
     const turnOrder = shuffleArray(playerIds);
 
     room.phase = 'CLUE_PHASE';
@@ -321,13 +323,14 @@ io.on('connection', (socket) => {
     room.spyGuess = null;
     room.winner = null;
 
-    console.log(`🚀 Oyun Başladı! Oda: [${room.roomCode}], Kategori: ${room.category}, Secret: ${secretWord}`);
+    console.log(`🚀 Room [${room.roomCode}] started game: Category=${room.category}, Mode=${room.gameMode}, Secret=${secretWord}`);
     broadcastState(room.roomCode);
   });
 
   // 5. RETURN TO LOBBY
-  socket.on('RETURN_TO_LOBBY', ({ roomCode }) => {
-    const room = getRoomAndEnsureSocket(socket, roomCode);
+  socket.on('RETURN_TO_LOBBY', (data) => {
+    const roomCode = data?.roomCode || data?.code;
+    const room = findRoomBySocket(socket, roomCode);
     if (!room) return;
 
     const cleanPlayers = room.players.map(p => ({
@@ -367,13 +370,13 @@ io.on('connection', (socket) => {
     };
 
     rooms.set(room.roomCode, freshLobbyState);
-    console.log(`🔄 Oda [${room.roomCode}] Lobiye Dönüş Yaptı.`);
+    console.log(`🔄 Room [${room.roomCode}] returned to lobby`);
     broadcastState(room.roomCode);
   });
 
   // 6. SUBMIT CLUE
   socket.on('SUBMIT_CLUE', ({ roomCode, clueText }) => {
-    const room = getRoomAndEnsureSocket(socket, roomCode);
+    const room = findRoomBySocket(socket, roomCode);
     if (room) {
       handleClueSubmit(room.roomCode, socket.id, clueText);
     }
@@ -381,7 +384,7 @@ io.on('connection', (socket) => {
 
   // 7. CAST VOTE
   socket.on('CAST_VOTE', ({ roomCode, targetId }) => {
-    const room = getRoomAndEnsureSocket(socket, roomCode);
+    const room = findRoomBySocket(socket, roomCode);
     if (room) {
       handleCastVote(room.roomCode, socket.id, targetId);
     }
@@ -389,7 +392,7 @@ io.on('connection', (socket) => {
 
   // 8. SPY GUESS SUBMIT
   socket.on('SPY_GUESS_SUBMIT', ({ roomCode, wordGuess }) => {
-    const room = getRoomAndEnsureSocket(socket, roomCode);
+    const room = findRoomBySocket(socket, roomCode);
     if (room) {
       handleSpyGuessSubmit(room.roomCode, wordGuess);
     }
