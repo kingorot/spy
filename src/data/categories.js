@@ -22,8 +22,8 @@ export const CATEGORIES = [
       'Aslan', 'Yunus', 'Kartal', 'Bukalemun', 'Zürafa', 'Penguen', 'Kanguru',
       'Koala', 'Kutup Ayısı', 'Kaplan', 'Kobra Yılanı', 'Panda', 'Baykuş', 'Çita',
       'Su Aygırı', 'Yarasa', 'Ahtapot', 'Timsah', 'Sincap', 'Orangutan', 'Sinek Kuşu',
-      'Flamingo', 'Karınca Yiyen', 'Köstebek', 'Fok Balığı', 'Kunduz', 'Akrep', 'Bukalemun',
-      'Bukalemun', 'Geyik', 'Kurt', 'Atmaca', 'Sırtlan', 'Karakulak', 'Denizanası'
+      'Flamingo', 'Karınca Yiyen', 'Köstebek', 'Fok Balığı', 'Kunduz', 'Akrep', 'Vaşak',
+      'Çakal', 'Geyik', 'Kurt', 'Atmaca', 'Sırtlan', 'Karakulak', 'Denizanası'
     ]
   },
   {
@@ -94,10 +94,10 @@ export const CATEGORIES = [
 export const getRandomWordsFromCategory = (categoryId, count = 20, customWords = []) => {
   let pool = [];
   if (categoryId === 'custom' && customWords.length >= count) {
-    pool = [...customWords];
+    pool = Array.from(new Set(customWords));
   } else {
     const category = CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[0];
-    pool = [...category.words];
+    pool = Array.from(new Set(category.words));
   }
 
   // Shuffle pool randomly

@@ -7,7 +7,7 @@ body {
   font-family: var(--font-body);
   background: radial-gradient(circle at 50% 0%, #18181b 0%, #09090b 70%);
   color: #f4f4f5;
-  min-h-screen: 100vh;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 
@@ -24,9 +24,13 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* 3D Card Flip Perspective Container */
+/* 3D Card Flip Perspective Container (Fixed height & no scroll jump) */
 .card-flip-container {
   perspective: 1000px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .card-flip-inner {
@@ -35,6 +39,7 @@ h1, h2, h3, h4, h5, h6 {
   height: 100%;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transform-style: preserve-3d;
+  will-change: transform;
 }
 
 .card-flip-inner.is-flipped {
@@ -49,6 +54,7 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   border-radius: 0.85rem;
+  overflow: hidden;
 }
 
 .card-face-back {
@@ -62,7 +68,7 @@ h1, h2, h3, h4, h5, h6 {
 .glass-card-matrix {
   background: #18181b;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .glass-card-matrix:hover {

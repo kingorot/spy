@@ -8,7 +8,10 @@ export const CardGrid = ({ words = [], secretWord = '', isSpy = false }) => {
 
   const activeWords = words && words.length >= 20 ? words : CATEGORIES[0].words.slice(0, 20);
 
-  const toggleFlip = (index) => {
+  const toggleFlip = (e, index) => {
+    if (e) {
+      e.preventDefault();
+    }
     soundEngine.playClick();
     setFlippedIndices(prev => ({
       ...prev,
@@ -27,11 +30,11 @@ export const CardGrid = ({ words = [], secretWord = '', isSpy = false }) => {
           return (
             <div
               key={idx}
-              onClick={() => toggleFlip(idx)}
-              className="card-flip-container h-[82px] sm:h-[94px] cursor-pointer select-none"
+              onClick={(e) => toggleFlip(e, idx)}
+              className="card-flip-container h-[82px] sm:h-[94px] cursor-pointer select-none touch-manipulation"
             >
               <div className={`card-flip-inner ${isFlipped ? 'is-flipped' : ''}`}>
-                {/* FRONT FACE (Word centered in middle of card, no GİZLİ badge) */}
+                {/* FRONT FACE (Word centered in middle of card) */}
                 <div
                   className={`card-face-front p-3 border flex items-center justify-center text-center relative shadow-md transition-all ${
                     isSecret
