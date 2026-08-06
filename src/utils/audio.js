@@ -33,8 +33,8 @@ class SoundEngine {
       const gain = this.ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(420, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.018);
+      osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.018);
 
       gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.018);
@@ -49,7 +49,7 @@ class SoundEngine {
     }
   }
 
-  // Soft sleek whisper tone for clue submission ("Gönder" button)
+  // Deep, warm, full-bodied (tok) pulse tone for clue submission ("Gönder" button)
   playClueGiven() {
     if (this.isMuted) return;
     this.initContext();
@@ -59,20 +59,26 @@ class SoundEngine {
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(520, now);
-      osc.frequency.exponentialRampToValueAtTime(780, now + 0.07);
+      // Deep warm low frequency (160Hz -> 100Hz) - zero high pitch / zero tiz
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.12);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(320, now);
 
       gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.1, now + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      gain.gain.linearRampToValueAtTime(0.22, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
-      osc.connect(gain);
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.07);
+      osc.stop(now + 0.12);
     } catch (e) {
       // Audio context failsafe
     }
