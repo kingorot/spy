@@ -51,11 +51,11 @@ class NetworkService {
       });
 
       this.socket.on('STATE_UPDATE', (newState) => {
-        this.state = newState;
+        this.state = { ...this.state, ...newState };
         if (newState.roomCode) {
           this.roomCode = newState.roomCode;
         }
-        this.isHost = this.state.hostId === this.socket.id;
+        this.isHost = this.state.hostId === this.socket.id || (this.socket && this.socket.id && this.state.players.find(p => p.id === this.socket.id)?.isHost);
         if (this.onStateChange) {
           this.onStateChange(this.state);
         }
@@ -110,6 +110,13 @@ class NetworkService {
   }
 
   updateSettings(settings) {
+    // 1. Optimistic instant local state update
+    this.state = { ...this.state, ...settings };
+    if (this.onStateChange) {
+      this.onStateChange(this.state);
+    }
+
+    // 2. Emit to socket backend
     const code = this.roomCode || this.state.roomCode;
     if (this.socket && code) {
       this.socket.emit('UPDATE_SETTINGS', { roomCode: code, ...settings });
