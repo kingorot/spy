@@ -91,6 +91,15 @@ export const CATEGORIES = [
   }
 ];
 
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export const getRandomWordsFromCategory = (categoryId, count = 20, customWords = []) => {
   let pool = [];
   if (categoryId === 'custom' && customWords.length >= count) {
@@ -100,7 +109,7 @@ export const getRandomWordsFromCategory = (categoryId, count = 20, customWords =
     pool = Array.from(new Set(category.words));
   }
 
-  // Shuffle pool randomly
-  const shuffled = pool.sort(() => 0.5 - Math.random());
+  // Unbiased Fisher-Yates shuffle
+  const shuffled = shuffleArray(pool);
   return shuffled.slice(0, count);
 };

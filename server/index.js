@@ -15,6 +15,16 @@ const io = new Server(server, {
   }
 });
 
+// Robust Fisher-Yates Shuffle for 100% unbiased randomness
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // Active rooms in memory: roomCode -> roomState
 const rooms = new Map();
 
@@ -237,7 +247,7 @@ io.on('connection', (socket) => {
     broadcastState(code);
   });
 
-  // 3. START GAME
+  // 3. START GAME (Fisher-Yates unbiased random spy selection & turn order)
   socket.on('START_GAME', ({ roomCode }) => {
     const room = rooms.get(roomCode);
     if (!room || room.hostId !== socket.id) return;
@@ -245,10 +255,13 @@ io.on('connection', (socket) => {
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
     const secretWord = words[Math.floor(Math.random() * words.length)];
     const playerIds = room.players.map(p => p.id);
-    const shuffledPlayerIds = [...playerIds].sort(() => 0.5 - Math.random());
-    const spies = shuffledPlayerIds.slice(0, room.spyCount);
+    
+    // Unbiased Fisher-Yates random spy selection
+    const shuffledForSpies = shuffleArray(playerIds);
+    const spies = shuffledForSpies.slice(0, room.spyCount);
 
-    const turnOrder = [...playerIds].sort(() => 0.5 - Math.random());
+    // Unbiased Fisher-Yates random turn order
+    const turnOrder = shuffleArray(playerIds);
 
     room.phase = 'CLUE_PHASE';
     room.words = words;
@@ -261,7 +274,7 @@ io.on('connection', (socket) => {
       {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         senderName: 'Sistem',
-        text: `${room.roundNumber}. Tur Başladı.`
+        text: `1. Tur Başladı.`
       }
     ];
     room.votes = {};
