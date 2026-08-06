@@ -18,9 +18,11 @@ class NetworkService {
       customWords: [],
       spyCount: 1,
       gameMode: 'classic',
+      turnDuration: 30,
       words: [],
       secretWord: '',
       spies: [],
+      eliminatedPlayers: [],
       turnOrder: [],
       currentTurnIndex: 0,
       roundNumber: 1,
@@ -42,6 +44,7 @@ class NetworkService {
           : 'https://spy-1ehe.onrender.com'
       );
 
+      console.log('🔌 Connecting Socket.IO to:', serverUrl);
       this.socket = io(serverUrl, {
         transports: ['websocket', 'polling']
       });
@@ -52,6 +55,7 @@ class NetworkService {
       });
 
       this.socket.on('STATE_UPDATE', (newState) => {
+        console.log('3. Diğer oyuncu yeni durumu sunucudan aldı:', newState.roomCode, 'Category:', newState.category, 'Mode:', newState.gameMode, 'Spies:', newState.spyCount, 'TurnDuration:', newState.turnDuration);
         this.state = newState;
         if (newState.roomCode) {
           this.roomCode = newState.roomCode;
@@ -71,14 +75,14 @@ class NetworkService {
     }
   }
 
-  createRoom(hostName, categoryId = 'food', spyCount = 1, customWords = [], gameMode = 'classic') {
+  createRoom(hostName, categoryId = 'food', spyCount = 1, customWords = [], gameMode = 'classic', turnDuration = 30) {
     return new Promise((resolve) => {
       this.connectSocket();
       this.isRoomCreator = true;
       this.isHost = true;
 
       const emitCreate = () => {
-        this.socket.emit('CREATE_ROOM', { hostName, category: categoryId, spyCount, customWords, gameMode }, (res) => {
+        this.socket.emit('CREATE_ROOM', { hostName, category: categoryId, spyCount, customWords, gameMode, turnDuration }, (res) => {
           this.isRoomCreator = true;
           this.isHost = true;
           this.roomCode = res.roomCode;
@@ -123,6 +127,7 @@ class NetworkService {
 
   updateSettings(settings) {
     const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
+    console.log('1. Host sunucuya mod değiştirme isteği atıyor:', code, settings);
     if (this.socket) {
       this.socket.emit('UPDATE_SETTINGS', { roomCode: code, ...settings });
     }
@@ -130,6 +135,7 @@ class NetworkService {
 
   startGame() {
     const code = (this.roomCode || this.state.roomCode || '').toUpperCase().trim();
+    console.log('🚀 Host sunucuya oyunu başlat isteği atıyor:', code);
     if (this.socket) {
       this.socket.emit('START_GAME', { roomCode: code });
     }

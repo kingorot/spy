@@ -326,8 +326,13 @@ io.on('connection', (socket) => {
   // 3. UPDATE SETTINGS (In Lobby)
   socket.on('UPDATE_SETTINGS', (data) => {
     const roomCode = data?.roomCode || data?.code;
+    console.log('2. Sunucu hosttan isteği aldı, herkese dağıtıyor. RoomCode:', roomCode, 'Data:', data);
+
     const room = findRoomBySocket(socket, roomCode);
-    if (!room) return;
+    if (!room) {
+      console.error('❌ HATA: Sunucu oda bulamadı! RoomCode:', roomCode);
+      return;
+    }
 
     if (data.category) room.category = data.category;
     if (data.gameMode) room.gameMode = data.gameMode;
@@ -347,8 +352,12 @@ io.on('connection', (socket) => {
   // 4. START GAME
   socket.on('START_GAME', (data) => {
     const roomCode = data?.roomCode || data?.code;
+    console.log('🚀 Sunucu START_GAME isteği aldı. RoomCode:', roomCode);
     const room = findRoomBySocket(socket, roomCode);
-    if (!room) return;
+    if (!room) {
+      console.error('❌ HATA: START_GAME için oda bulunamadı! RoomCode:', roomCode);
+      return;
+    }
 
     const words = getRandomWordsFromCategory(room.category, 20, room.customWords);
     const secretWord = words[Math.floor(Math.random() * words.length)];
