@@ -5,7 +5,7 @@ import { sounds } from '../utils/audio';
 export default function RulesModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e) => {
+  const handleBackdropClick = () => {
     sounds.playClick();
     onClose();
   };
@@ -21,65 +21,54 @@ export default function RulesModal({ isOpen, onClose }) {
     >
       <div
         onClick={handleContentClick}
-        className="w-full max-w-lg bg-[#101116] border border-zinc-800 rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto cursor-default"
+        className="w-full max-w-lg bg-[#101116] border border-zinc-800 rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto cursor-default font-mono"
       >
         <div className="flex items-center gap-2.5 mb-5 border-b border-zinc-800 pb-3">
           <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white">
             <HelpCircle className="w-5 h-5" />
           </div>
-          <h2 className="text-xl font-extrabold text-white tracking-widest font-mono">
-            NASIL OYNANIR?
+          <h2 className="text-xl font-extrabold text-white tracking-widest">
+            KURALLAR
           </h2>
         </div>
 
-        <div className="space-y-4 text-xs md:text-sm text-zinc-300">
-          <div className="flex gap-3 bg-[#15161e] p-3.5 rounded-xl border border-zinc-800">
-            <div className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono">
-              1
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-1">20 Kart ve Temalar</h3>
-              <p className="text-zinc-400 leading-relaxed">
-                Her tur başında seçilen kategoriye ait 20 kelimelik bir kart ızgarası açılır (örn: Yemekler).
-              </p>
-            </div>
+        <div className="space-y-5 text-xs md:text-sm text-zinc-300 text-left leading-relaxed">
+          <div className="bg-[#15161e] p-4 rounded-xl border border-zinc-800">
+            <h3 className="font-extrabold text-white text-sm mb-1.5">
+              1. Rol Dağıtımı
+            </h3>
+            <p className="text-zinc-400">
+              Siviller seçilen gizli kelimeyi bilir, Casus ise kelimeyi bilmez.
+            </p>
           </div>
 
-          <div className="flex gap-3 bg-[#15161e] p-3.5 rounded-xl border border-zinc-800">
-            <div className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono">
-              2
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-1">Sivil ve Casus Rolleri</h3>
-              <p className="text-zinc-400 leading-relaxed">
-                <strong>Siviller:</strong> 20 karttan hangisinin seçildiğini görür (vurgulanan kart).<br/>
-                <strong>Casus:</strong> Seçilen kelimeyi bilmez, sadece 20 kartı görür. Kör Casuslar modunda casuslar birbirini bilmez.
-              </p>
-            </div>
+          <div className="bg-[#15161e] p-4 rounded-xl border border-zinc-800">
+            <h3 className="font-extrabold text-white text-sm mb-1.5">
+              2. İpucu & Oylama
+            </h3>
+            <p className="text-zinc-400">
+              Sırayla tek kelimelik ipuçları verilir. Ardından şüpheli kişi oylanır veya Pas Geçilir.
+            </p>
           </div>
 
-          <div className="flex gap-3 bg-[#15161e] p-3.5 rounded-xl border border-zinc-800">
-            <div className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono">
-              3
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-1">İpucu Verme Sırası</h3>
-              <p className="text-zinc-400 leading-relaxed">
-                Rastgele oluşturulmuş sabit bir sıraya göre herkes ipucu verir. Casus belli etmemek için kelimeyi tahmin etmeye çalışarak mantıklı bir ipucu verir.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 bg-[#15161e] p-3.5 rounded-xl border border-zinc-800">
-            <div className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono">
-              4
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-1">Oylama ve Tahmin</h3>
-              <p className="text-zinc-400 leading-relaxed">
-                Oylamada oyuncuların oyları canlı gösterilir. Ayrıca Casus sağ alttaki "Kelime Tahmin Et" butonu ile istediği an kelimeyi tahmin edebilir.
-              </p>
-            </div>
+          <div className="bg-[#15161e] p-4 rounded-xl border border-zinc-800">
+            <h3 className="font-extrabold text-white text-sm mb-2">
+              3. Kazanma Koşulları
+            </h3>
+            <ul className="space-y-2 text-zinc-300">
+              <li className="flex items-start gap-1.5">
+                <span className="text-zinc-500 font-bold">-</span>
+                <span>Yanlış kişi elenirse ➔ <strong className="text-white">Casus Kazanır.</strong></span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-zinc-500 font-bold">-</span>
+                <span>Casus yakalanıp veya gönüllü tahmin yapıp kelimeyi bilirse ➔ <strong className="text-white">Casus Kazanır.</strong></span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-zinc-500 font-bold">-</span>
+                <span>Casus kelimeyi bilemezse ➔ <strong className="text-white">Siviller Kazanır.</strong></span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
