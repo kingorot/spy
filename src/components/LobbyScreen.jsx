@@ -196,10 +196,10 @@ export default function LobbyScreen({ roomState, myPlayerId, onUpdateOptions, on
         </div>
       </div>
 
-      {/* 4. Main Action Start Button */}
+      {/* 4. Main Action Start Button / Guest Status */}
       <div className="w-full">
-        {canStart ? (
-          isHost ? (
+        {isHost ? (
+          canStart ? (
             <button
               onClick={() => {
                 sounds.playClick();
@@ -211,17 +211,17 @@ export default function LobbyScreen({ roomState, myPlayerId, onUpdateOptions, on
               <span>OYUNU BAŞLAT</span>
             </button>
           ) : (
-            <div className="w-full bg-[#14151c] text-zinc-400 border border-zinc-800 font-semibold py-3.5 px-6 rounded-xl text-center text-sm shadow-inner">
-              Oda sahibinin oyunu başlatması bekleniyor...
-            </div>
+            <button
+              disabled
+              className="w-full bg-[#13141a] text-zinc-500 border border-zinc-800/80 font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed opacity-80"
+            >
+              <span>▶ EN AZ 3 OYUNCU GEREKLİ</span>
+            </button>
           )
         ) : (
-          <button
-            disabled
-            className="w-full bg-[#13141a] text-zinc-500 border border-zinc-800/80 font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed opacity-80"
-          >
-            <span>▶ EN AZ 3 OYUNCU GEREKLİ</span>
-          </button>
+          <div className="w-full bg-[#14151c] text-zinc-400 border border-zinc-800 font-semibold py-4 px-6 rounded-xl text-center text-sm shadow-inner font-mono">
+            Oda sahibinin oyunu başlatması bekleniyor...
+          </div>
         )}
       </div>
 

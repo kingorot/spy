@@ -43,6 +43,7 @@ export default function App() {
 
       // Set default lobby states if host
       if (isHost()) {
+        setState("hostId", localPlayer.id);
         setState("category", "Yemekler");
         setState("gameMode", "Klasik Mod");
         setState("spyCount", 1);
@@ -111,18 +112,19 @@ export default function App() {
       const winner = getState("winner");
       const winReason = getState("winReason");
       const accusedPlayerId = getState("accusedPlayerId");
+      const hostId = getState("hostId") || (isHost() ? myPlayerId : null);
 
       const mappedPlayers = players.map(p => ({
         id: p.id,
         name: p.getState("name") || "Oyuncu",
-        isHost: p.id === players[0]?.id, // simple host detection
+        isHost: hostId ? p.id === hostId : (isHost() && p.id === myPlayerId),
         isAlive: p.getState("isAlive") !== false,
         role: (gameState === 'GAME_OVER' || p.id === myPlayerId) ? p.getState("role") : undefined
       }));
 
       const stateObj = {
         code: getRoomCode(),
-        hostId: players[0]?.id,
+        hostId: hostId || (isHost() ? myPlayerId : null),
         category,
         gameMode,
         spyCount,
