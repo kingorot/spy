@@ -112,7 +112,13 @@ export default function App() {
       const winner = getState("winner");
       const winReason = getState("winReason");
       const accusedPlayerId = getState("accusedPlayerId");
-      const hostId = getState("hostId") || (isHost() ? myPlayerId : null);
+      const myRole = myPlayer()?.getState("role");
+      let otherSpies = [];
+      if (myRole === 'SPY' && gameMode === 'Klasik Mod') {
+        otherSpies = players
+          .filter(p => p.id !== myPlayerId && p.getState("role") === 'SPY')
+          .map(p => p.getState("name") || "Oyuncu");
+      }
 
       const mappedPlayers = players.map(p => ({
         id: p.id,
@@ -131,6 +137,7 @@ export default function App() {
         turnTimeLimit,
         gameState,
         players: mappedPlayers,
+        otherSpies,
         cards,
         secretWord: (gameState === 'GAME_OVER' || (myPlayer()?.getState("role") !== 'SPY' && gameState !== 'LOBBY')) ? secretWord : null,
         turnOrder,
