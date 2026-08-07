@@ -112,6 +112,7 @@ export default function App() {
       const winner = getState("winner");
       const winReason = getState("winReason");
       const accusedPlayerId = getState("accusedPlayerId");
+      const hostId = getState("hostId") || (isHost() ? myPlayerId : null);
       const myRole = myPlayer()?.getState("role");
       let otherSpies = [];
       if (myRole === 'SPY' && gameMode === 'Klasik Mod') {
@@ -428,7 +429,12 @@ export default function App() {
           />
         )}
 
-        {view === 'LOBBY' && roomState && (
+        {view === 'LOBBY' && (!roomState ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 font-mono text-sm gap-3 my-20">
+            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Lobi yükleniyor...</span>
+          </div>
+        ) : (
           <LobbyScreen
             roomState={roomState}
             myPlayerId={myPlayerId}
@@ -436,7 +442,7 @@ export default function App() {
             onStartGame={handleStartGame}
             onAddBot={handleAddBot}
           />
-        )}
+        ))}
 
         {view === 'GAME' && roomState && (
           <GameScreen
