@@ -31,14 +31,10 @@ export default function App() {
   // Initialize PlayroomKit state synchronization
   const initPlayroom = async (nickname, roomCode = null) => {
     try {
-      if (roomCode) {
-        const newUrl = window.location.origin + window.location.pathname + `#r=${roomCode}`;
-        window.history.replaceState(null, '', newUrl);
-      }
-
       await insertCoin({
         skipLobby: true,
         gameId: "kelime-casusu",
+        roomCode: roomCode || undefined,
       });
 
       const localPlayer = myPlayer();
