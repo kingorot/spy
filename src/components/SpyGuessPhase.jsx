@@ -27,7 +27,7 @@ export default function SpyGuessPhase({ roomState, myPlayerId, onSpyGuess }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center cursor-default"
+        className="w-full max-w-2xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center cursor-default"
       >
         <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center mb-3">
           <Target className="w-7 h-7 text-white" />
@@ -45,8 +45,8 @@ export default function SpyGuessPhase({ roomState, myPlayerId, onSpyGuess }) {
             <p className="text-sm text-zinc-200 mb-4 font-bold">
               Sen Casussun. Aşağıdaki 20 karttan hangisinin GİZLİ KELİME olduğunu seç ve Onayla'ya bas:
             </p>
-            {/* 4 columns x 5 rows grid (4x5) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800 w-full mb-4">
+            {/* 5 columns x 4 rows grid (5x4) */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800 w-full mb-4">
               {roomState.cards.map((card, idx) => {
                 const isSelected = selectedWord === card;
                 return (
@@ -71,7 +71,7 @@ export default function SpyGuessPhase({ roomState, myPlayerId, onSpyGuess }) {
               })}
             </div>
 
-            {/* Onayla button replacing Vazgeç */}
+            {/* Onayla button */}
             <button
               disabled={!selectedWord}
               onClick={handleConfirm}

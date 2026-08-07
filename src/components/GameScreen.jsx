@@ -91,7 +91,7 @@ export default function GameScreen({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center cursor-default"
+            className="w-full max-w-2xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center cursor-default"
           >
             <h2 className="text-xl font-extrabold text-white tracking-widest font-mono mb-2">
               KELİME TAHMİN ET
@@ -100,8 +100,8 @@ export default function GameScreen({
               Gizli kelimeyi tahmin etmek istediğiniz kartı seçin ve Onayla'ya basın.
             </p>
 
-            {/* 4x5 grid layout (4 columns x 5 rows) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800 w-full mb-4">
+            {/* 5x4 grid layout (5 columns x 4 rows) */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800 w-full mb-4">
               {roomState.cards.map((card, idx) => {
                 const isSelected = selectedWord === card;
                 return (
