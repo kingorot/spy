@@ -38,9 +38,10 @@ export default function RulesModal({ isOpen, onClose }) {
               1
             </div>
             <div>
-              <h3 className="font-bold text-white mb-1">20 Kart ve Temalar</h3>
+              <h3 className="font-bold text-white mb-1">Sivil ve Casus Rolleri</h3>
               <p className="text-zinc-400 leading-relaxed">
-                Her tur başında seçilen kategoriye ait 20 kelimelik bir kart ızgarası açılır (örn: Yemekler).
+                <strong>Siviller:</strong> 20 karttan hangisinin seçildiğini görür (vurgulanan kart).<br />
+                <strong>Casus:</strong> Seçilen kelimeyi bilmez, sadece 20 kartı görür. Kör Casuslar modunda casuslar birbirini bilmez.
               </p>
             </div>
           </div>
@@ -50,10 +51,9 @@ export default function RulesModal({ isOpen, onClose }) {
               2
             </div>
             <div>
-              <h3 className="font-bold text-white mb-1">Sivil ve Casus Rolleri</h3>
+              <h3 className="font-bold text-white mb-1">İpucu Verme Sırası</h3>
               <p className="text-zinc-400 leading-relaxed">
-                <strong>Siviller:</strong> 20 karttan hangisinin seçildiğini görür (vurgulanan kart).<br/>
-                <strong>Casus:</strong> Seçilen kelimeyi bilmez, sadece 20 kartı görür. Kör Casuslar modunda casuslar birbirini bilmez.
+                Rastgele oluşturulmuş bir sıraya göre herkes kelimeye göre ipucu verir. Casus ise kelimeyi tahmin etmeye ve bu sırada fark edilmemeye çalışır.
               </p>
             </div>
           </div>
@@ -63,21 +63,9 @@ export default function RulesModal({ isOpen, onClose }) {
               3
             </div>
             <div>
-              <h3 className="font-bold text-white mb-1">İpucu Verme Sırası</h3>
-              <p className="text-zinc-400 leading-relaxed">
-                Rastgele oluşturulmuş sabit bir sıraya göre herkes ipucu verir. Casus belli etmemek için kelimeyi tahmin etmeye çalışarak mantıklı bir ipucu verir.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 bg-[#15161e] p-3.5 rounded-xl border border-zinc-800">
-            <div className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono">
-              4
-            </div>
-            <div>
               <h3 className="font-bold text-white mb-1">Oylama ve Tahmin</h3>
               <p className="text-zinc-400 leading-relaxed">
-                Oylamada oyuncuların oyları canlı gösterilir. Ayrıca Casus sağ alttaki "Kelime Tahmin Et" butonu ile istediği an kelimeyi tahmin edebilir.
+                Oylamada oyuncuların oyları canlı gösterilir. Ayrıca Casus "Kelime Tahmin Et" butonu ile istediği an kelimeyi tahmin edebilir. Eğer casus oy çoğunluğuyla elenirse son bir kelimeyi tahmin etme hakkı verilir, eğer tahmin edebilirse kazanır.
               </p>
             </div>
           </div>

@@ -15,7 +15,8 @@ export default function CardGrid({ cards, secretWord, isSpy, isMyTurn, onSpyGues
 
   return (
     <div className="w-full max-w-4xl mx-auto my-4 px-2">
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3.5">
+      {/* 5x4 Grid layout (5 columns x 4 rows) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         {cards.map((card, idx) => {
           const isSecret = !isSpy && secretWord && card.toLowerCase() === secretWord.toLowerCase();
           const isMarked = markedCards[card];
@@ -34,7 +35,7 @@ export default function CardGrid({ cards, secretWord, isSpy, isMyTurn, onSpyGues
                 }
               `}
             >
-              {/* Card text - hidden when marked as requested */}
+              {/* Card text - hidden when marked */}
               {!isMarked && (
                 <span className={`text-sm md:text-base tracking-wide z-10 ${isSecret ? 'font-extrabold text-emerald-200' : 'font-medium'}`}>
                   {card}
@@ -48,22 +49,6 @@ export default function CardGrid({ cards, secretWord, isSpy, isMyTurn, onSpyGues
                     <Eye className="w-7 h-7 text-white stroke-[2.5]" />
                   </div>
                 </div>
-              )}
-
-              {/* Optional Spy Quick Guess Hover Button */}
-              {isSpy && isMyTurn && !isMarked && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    sounds.playClick();
-                    if (window.confirm(`"${card}" kelimesini gizli kelime olarak tahmin etmek istiyor musunuz?`)) {
-                      onSpyGuess(card);
-                    }
-                  }}
-                  className="absolute top-1 right-1 opacity-0 hover:opacity-100 bg-white hover:bg-zinc-200 text-black text-[10px] font-bold px-1.5 py-0.5 rounded shadow transition z-20"
-                >
-                  Tahmin Et
-                </button>
               )}
             </div>
           );

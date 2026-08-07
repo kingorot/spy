@@ -39,6 +39,6 @@ export const GAME_CATEGORIES = {
 
 export const GAME_MODES = [
   "Klasik Mod",
-  "Hızlı Mod (Zaman Sınırlı)",
+  "Zaman Sınırlı Mod",
   "Kör Casuslar Modu"
 ];

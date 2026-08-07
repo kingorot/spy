@@ -14,7 +14,7 @@ export default function CluePhase({ roomState, myPlayerId, onSubmitClue }) {
   const nextSpeaker = roomState.players.find(p => p.id === nextSpeakerId);
 
   const isMyTurn = currentSpeakerId === myPlayerId;
-  const isFastMode = roomState.gameMode === 'Hızlı Mod (Zaman Sınırlı)';
+  const isFastMode = roomState.gameMode === 'Zaman Sınırlı Mod';
 
   // Countdown timer for Hızlı Mod
   useEffect(() => {

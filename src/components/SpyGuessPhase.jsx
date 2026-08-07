@@ -10,14 +10,25 @@ export default function SpyGuessPhase({ roomState, myPlayerId, onSpyGuess }) {
   const accusedPlayer = roomState.players.find(p => p.id === roomState.accusedPlayerId);
   const isAccusedSpy = roomState.accusedPlayerId === myPlayerId;
 
-  const handleSubmit = (word) => {
+  const handleConfirm = () => {
+    if (!selectedWord) return;
     sounds.playClick();
-    onSpyGuess(word);
+    onSpyGuess(selectedWord);
+  };
+
+  const handleBackdropClick = () => {
+    // Backdrop click logic
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center">
+    <div
+      onClick={handleBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center cursor-default"
+      >
         <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center mb-3">
           <Target className="w-7 h-7 text-white" />
         </div>
@@ -32,19 +43,48 @@ export default function SpyGuessPhase({ roomState, myPlayerId, onSpyGuess }) {
         {isAccusedSpy ? (
           <div className="w-full">
             <p className="text-sm text-zinc-200 mb-4 font-bold">
-              Sen Casussun. Aşağıdaki 20 karttan hangisinin GİZLİ KELİME olduğunu doğru tahmin edersen KAZANIRSIN:
+              Sen Casussun. Aşağıdaki 20 karttan hangisinin GİZLİ KELİME olduğunu seç ve Onayla'ya bas:
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800">
-              {roomState.cards.map((card, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSubmit(card)}
-                  className="bg-[#171822] hover:bg-white hover:text-black text-zinc-200 border border-zinc-700 font-bold py-2.5 px-2 rounded-xl text-xs transition shadow-sm active:scale-95"
-                >
-                  {card}
-                </button>
-              ))}
+            {/* 4 columns x 5 rows grid (4x5) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800 w-full mb-4">
+              {roomState.cards.map((card, idx) => {
+                const isSelected = selectedWord === card;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      sounds.playClick();
+                      setSelectedWord(card);
+                    }}
+                    className={`
+                      font-bold py-2.5 px-2 rounded-xl text-xs transition shadow-sm font-mono border
+                      ${isSelected
+                        ? 'bg-white text-black border-white ring-2 ring-white/50 scale-95'
+                        : 'bg-[#171822] hover:bg-zinc-800 text-zinc-200 border-zinc-700'
+                      }
+                    `}
+                  >
+                    {card}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Onayla button replacing Vazgeç */}
+            <button
+              disabled={!selectedWord}
+              onClick={handleConfirm}
+              className={`
+                w-full font-extrabold py-3 rounded-xl text-sm transition font-mono tracking-wider shadow-xl
+                ${selectedWord
+                  ? 'bg-white hover:bg-zinc-200 text-black active:scale-95'
+                  : 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed'
+                }
+              `}
+            >
+              ONAYLA
+            </button>
           </div>
         ) : (
           <div className="w-full bg-[#161720] border border-zinc-800 rounded-xl p-6 text-zinc-300 font-medium text-sm">

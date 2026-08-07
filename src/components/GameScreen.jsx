@@ -19,11 +19,26 @@ export default function GameScreen({
   onReturnToLobby
 }) {
   const [showSpyGuessModal, setShowSpyGuessModal] = useState(false);
+  const [selectedWord, setSelectedWord] = useState('');
 
   if (!roomState) return null;
 
   const me = roomState.players.find(p => p.id === myPlayerId);
   const isSpy = me?.role === 'SPY';
+
+  const handleConfirmGuess = () => {
+    if (!selectedWord) return;
+    sounds.playClick();
+    setShowSpyGuessModal(false);
+    onSpyGuess(selectedWord);
+    setSelectedWord('');
+  };
+
+  const handleCloseModal = () => {
+    sounds.playClick();
+    setShowSpyGuessModal(false);
+    setSelectedWord('');
+  };
 
   return (
     <div className="flex-1 flex flex-col items-center justify-start p-3 md:p-5 max-w-5xl mx-auto w-full relative pb-28">
@@ -37,7 +52,7 @@ export default function GameScreen({
         onSubmitClue={onSubmitClue}
       />
 
-      {/* 3. 4x5 Grid of 20 Theme Cards */}
+      {/* 3. 5x4 Grid of 20 Theme Cards (4 rows x 5 columns = 5x4) */}
       <CardGrid
         cards={roomState.cards}
         secretWord={roomState.secretWord}
@@ -68,37 +83,62 @@ export default function GameScreen({
         </div>
       )}
 
-      {/* Spy Voluntary Guess Modal when bottom-right button is clicked */}
+      {/* Spy Voluntary Guess Modal (4x5 grid = 5 rows x 4 columns) */}
       {showSpyGuessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center">
+        <div
+          onClick={handleCloseModal}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-xl bg-[#101116] border border-zinc-700 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center cursor-default"
+          >
             <h2 className="text-xl font-extrabold text-white tracking-widest font-mono mb-2">
               KELİME TAHMİN ET
             </h2>
             <p className="text-xs text-zinc-400 mb-4 font-medium">
-              Gizli kelimeyi tahmin etmek istediğiniz kartı seçin. Yanlış tahmin ederseniz Siviller kazanacaktır.
+              Gizli kelimeyi tahmin etmek istediğiniz kartı seçin ve Onayla'ya basın.
             </p>
 
+            {/* 4x5 grid layout (4 columns x 5 rows) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2 bg-[#090a0d] rounded-xl border border-zinc-800 w-full mb-4">
-              {roomState.cards.map((card, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setShowSpyGuessModal(false);
-                    onSpyGuess(card);
-                  }}
-                  className="bg-[#171822] hover:bg-white hover:text-black text-zinc-200 border border-zinc-700 font-bold py-2.5 px-2 rounded-xl text-xs transition shadow-sm active:scale-95 font-mono"
-                >
-                  {card}
-                </button>
-              ))}
+              {roomState.cards.map((card, idx) => {
+                const isSelected = selectedWord === card;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      sounds.playClick();
+                      setSelectedWord(card);
+                    }}
+                    className={`
+                      font-bold py-2.5 px-2 rounded-xl text-xs transition shadow-sm font-mono border
+                      ${isSelected
+                        ? 'bg-white text-black border-white ring-2 ring-white/50 scale-95'
+                        : 'bg-[#171822] hover:bg-zinc-800 text-zinc-200 border-zinc-700'
+                      }
+                    `}
+                  >
+                    {card}
+                  </button>
+                );
+              })}
             </div>
 
+            {/* Onayla button replacing Vazgeç button */}
             <button
-              onClick={() => setShowSpyGuessModal(false)}
-              className="w-full bg-[#161720] hover:bg-zinc-800 text-zinc-300 font-bold py-2.5 rounded-xl text-xs transition"
+              disabled={!selectedWord}
+              onClick={handleConfirmGuess}
+              className={`
+                w-full font-extrabold py-3 rounded-xl text-sm transition font-mono tracking-wider shadow-xl
+                ${selectedWord
+                  ? 'bg-white hover:bg-zinc-200 text-black active:scale-95'
+                  : 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed'
+                }
+              `}
             >
-              Vazgeç
+              ONAYLA
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, Users, Crown, Play, UserPlus, ChevronDown, ChevronUp, History } from 'lucide-react';
+import { Copy, Check, Users, Crown, UserPlus, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { GAME_CATEGORIES, GAME_MODES } from '../data/categories';
 import { sounds } from '../utils/audio';
 
@@ -44,7 +44,7 @@ export default function LobbyScreen({ roomState, myPlayerId, onUpdateOptions, on
 
   const playerCount = roomState.players.length;
   const canStart = playerCount >= 3;
-  const isFastMode = roomState.gameMode === 'Hızlı Mod (Zaman Sınırlı)';
+  const isFastMode = roomState.gameMode === 'Zaman Sınırlı Mod';
 
   return (
     <div className="flex-1 flex flex-col items-center justify-start p-4 md:p-6 pb-24 max-w-xl mx-auto w-full gap-5">
@@ -111,7 +111,7 @@ export default function LobbyScreen({ roomState, myPlayerId, onUpdateOptions, on
             </select>
           </div>
 
-          {/* Time limit text input for Hızlı Mod as requested */}
+          {/* Time limit text input for Zaman Sınırlı Mod */}
           {isFastMode && (
             <div>
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
@@ -196,7 +196,7 @@ export default function LobbyScreen({ roomState, myPlayerId, onUpdateOptions, on
         </div>
       </div>
 
-      {/* 4. Main Action Start Button / Guest Status */}
+      {/* 4. Main Action Start Button (Play emoji removed) */}
       <div className="w-full">
         {isHost ? (
           canStart ? (
@@ -205,17 +205,16 @@ export default function LobbyScreen({ roomState, myPlayerId, onUpdateOptions, on
                 sounds.playClick();
                 onStartGame();
               }}
-              className="w-full bg-white hover:bg-zinc-200 text-black font-extrabold py-3.5 px-6 rounded-xl transition flex items-center justify-center gap-2 text-base shadow-xl active:scale-[0.99]"
+              className="w-full bg-white hover:bg-zinc-200 text-black font-extrabold py-3.5 px-6 rounded-xl transition flex items-center justify-center gap-2 text-base shadow-xl active:scale-[0.99] font-mono tracking-wider"
             >
-              <Play className="w-5 h-5 text-black fill-black" />
               <span>OYUNU BAŞLAT</span>
             </button>
           ) : (
             <button
               disabled
-              className="w-full bg-[#13141a] text-zinc-500 border border-zinc-800/80 font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed opacity-80"
+              className="w-full bg-[#13141a] text-zinc-500 border border-zinc-800/80 font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed opacity-80 font-mono"
             >
-              <span>▶ EN AZ 3 OYUNCU GEREKLİ</span>
+              <span>EN AZ 3 OYUNCU GEREKLİ</span>
             </button>
           )
         ) : (
