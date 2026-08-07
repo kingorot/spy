@@ -43,7 +43,7 @@ export default function GameScreen({
   return (
     <div className="flex-1 flex flex-col items-center justify-start p-3 md:p-5 max-w-5xl mx-auto w-full relative pb-28">
       {/* 1. Top Player Role Banner */}
-      <PlayerRoleBadge myRole={me?.role} myName={me?.name} otherSpies={roomState.otherSpies} />
+      <PlayerRoleBadge myRole={me?.role} myName={me?.name} otherSpies={roomState.otherSpies} gameMode={roomState.gameMode} />
 
       {/* 2. Turn Order & Clue Input Header */}
       <CluePhase

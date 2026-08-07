@@ -69,6 +69,18 @@ export default function RulesModal({ isOpen, onClose }) {
               </p>
             </div>
           </div>
+
+          <div className="flex gap-3 bg-[#15161e] p-3.5 rounded-xl border border-zinc-800">
+            <div className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono">
+              4
+            </div>
+            <div>
+              <h3 className="font-bold text-white mb-1">Delinin OyunAlanı Modu</h3>
+              <p className="text-zinc-400 leading-relaxed">
+                Herkes kendini "Sivil" olarak görür. Ancak oyunculardan biri gizlice "Deli"dir ve ekranında aynı kategoriden farklı bir kelime vurgulanmıştır. Herkes ipucu verirken Deli kendi farklı kelimesine göre ipucu verdiğinden yavaşça fark edilir. Siviller Deliyi oylamayla bulup elemeye çalışır.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

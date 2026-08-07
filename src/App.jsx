@@ -102,6 +102,7 @@ export default function App() {
       const turnTimeLimit = getState("turnTimeLimit");
       const gameState = getState("gameState");
       const secretWord = getState("secretWord");
+      const madmanWord = getState("madmanWord");
       const cards = getState("cards") || [];
       const turnOrder = getState("turnOrder") || [];
       const currentTurnIndex = getState("currentTurnIndex") || 0;
@@ -114,11 +115,18 @@ export default function App() {
       const accusedPlayerId = getState("accusedPlayerId");
       const hostId = getState("hostId") || (isHost() ? myPlayerId : null);
       const myRole = myPlayer()?.getState("role");
+
       let otherSpies = [];
       if (myRole === 'SPY' && gameMode === 'Klasik Mod') {
         otherSpies = players
           .filter(p => p.id !== myPlayerId && p.getState("role") === 'SPY')
           .map(p => p.getState("name") || "Oyuncu");
+      }
+
+      // Determine which word the local player sees highlighted
+      let displayedWord = secretWord;
+      if (gameMode === 'Delinin OyunAlanı' && myRole === 'MADMAN' && gameState !== 'GAME_OVER') {
+        displayedWord = madmanWord;
       }
 
       const mappedPlayers = players.map(p => ({
@@ -140,7 +148,8 @@ export default function App() {
         players: mappedPlayers,
         otherSpies,
         cards,
-        secretWord: (gameState === 'GAME_OVER' || (myPlayer()?.getState("role") !== 'SPY' && gameState !== 'LOBBY')) ? secretWord : null,
+        secretWord: (gameState === 'GAME_OVER' || (myRole !== 'SPY' && gameState !== 'LOBBY')) ? displayedWord : null,
+        madmanWord,
         turnOrder,
         currentTurnIndex,
         currentRound,
@@ -218,15 +227,37 @@ export default function App() {
     const selected20 = shuffledPool.slice(0, 20);
     const secretWord = selected20[Math.floor(Math.random() * 20)];
 
-    // Assign roles
-    const countSpies = Math.min(getState("spyCount") || 1, players.length - 1);
-    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+    const currentGameMode = getState("gameMode");
 
-    players.forEach((p, idx) => {
-      const isSpy = shuffledPlayers.slice(0, countSpies).some(sp => sp.id === p.id);
-      p.setState("role", isSpy ? "SPY" : "CIVILIAN");
-      p.setState("isAlive", true);
-    });
+    if (currentGameMode === 'Delinin OyunAlanı') {
+      // Pick 1 random player as MADMAN, all others as CIVILIAN
+      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+      const madmanPlayer = shuffledPlayers[0];
+
+      // Pick madmanWord from remaining 19 cards
+      const otherCards = selected20.filter(c => c !== secretWord);
+      const madmanWord = otherCards[Math.floor(Math.random() * otherCards.length)];
+
+      players.forEach(p => {
+        const isMadman = p.id === madmanPlayer.id;
+        p.setState("role", isMadman ? "MADMAN" : "CIVILIAN");
+        p.setState("isAlive", true);
+      });
+
+      setState("madmanWord", madmanWord);
+    } else {
+      // Standard Spy roles assignment
+      const countSpies = Math.min(getState("spyCount") || 1, players.length - 1);
+      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+
+      players.forEach((p, idx) => {
+        const isSpy = shuffledPlayers.slice(0, countSpies).some(sp => sp.id === p.id);
+        p.setState("role", isSpy ? "SPY" : "CIVILIAN");
+        p.setState("isAlive", true);
+      });
+
+      setState("madmanWord", null);
+    }
 
     setState("cards", selected20);
     setState("secretWord", secretWord);
@@ -332,17 +363,34 @@ export default function App() {
         setState("accusedPlayerId", accusedId);
         setState("logs", [...getState("logs"), {
           id: `accused-${Date.now()}`,
-          text: `Çoğunluk oyuyla ${accusedPlayer?.getState("name")} casus olarak suçlandı.`,
+          text: `Çoğunluk oyuyla ${accusedPlayer?.getState("name")} suçlandı.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: "important"
         }]);
 
-        if (accusedPlayer?.getState("role") === 'SPY') {
-          setState("gameState", "SPY_GUESS_PHASE");
-        } else {
-          setState("winner", "SPY");
-          setState("winReason", `Siviller masum bir oyuncuyu (${accusedPlayer?.getState("name")}) eledi.`);
+        const currentGameMode = getState("gameMode");
+
+        if (currentGameMode === 'Delinin OyunAlanı') {
+          const madmanPlayer = players.find(p => p.getState("role") === 'MADMAN');
+          const realSecretWord = getState("secretWord");
+          const mWord = getState("madmanWord");
+
+          if (accusedPlayer?.getState("role") === 'MADMAN') {
+            setState("winner", "CIVILIANS");
+            setState("winReason", `Siviller kazandı! Deli (${accusedPlayer?.getState("name")}) tespit edildi ve elendi. Gerçek kelime: "${realSecretWord}", Delinin kelimesi: "${mWord}".`);
+          } else {
+            setState("winner", "MADMAN");
+            setState("winReason", `Deli kazandı! Siviller Deliyi (${madmanPlayer?.getState("name")}) tespit edemedi! Gerçek kelime: "${realSecretWord}", Delinin kelimesi: "${mWord}".`);
+          }
           setState("gameState", "GAME_OVER");
+        } else {
+          if (accusedPlayer?.getState("role") === 'SPY') {
+            setState("gameState", "SPY_GUESS_PHASE");
+          } else {
+            setState("winner", "SPY");
+            setState("winReason", `Siviller masum bir oyuncuyu (${accusedPlayer?.getState("name")}) eledi.`);
+            setState("gameState", "GAME_OVER");
+          }
         }
       }
     }
