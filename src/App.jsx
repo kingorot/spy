@@ -20,11 +20,7 @@ export default function App() {
 
   useEffect(() => {
     // Initialize Socket connection
-    const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : window.location.origin;
-    socket = io(socketUrl, {
-      transports: ['polling', 'websocket'],
-      upgrade: true
-    });
+    socket = io();
 
     socket.on('connect', () => {
       setMyPlayerId(socket.id);
