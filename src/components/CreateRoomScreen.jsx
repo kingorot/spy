@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
-export default function CreateRoomScreen({ mode = 'CREATE', onCreateRoom, onJoinRoom, onBack }) {
+export default function CreateRoomScreen({ mode = 'CREATE', onCreateRoom, onJoinRoom, onBack, prefilledRoomCode = '' }) {
   const defaultNickname = () => {
     const prefixes = ['Gölge', 'Dedektif', 'Şahin', 'Ajan', 'Poyraz', 'Atlas', 'Rüzgar', 'Kobra'];
     const num = Math.floor(Math.random() * 90) + 10;
@@ -10,7 +10,7 @@ export default function CreateRoomScreen({ mode = 'CREATE', onCreateRoom, onJoin
   };
 
   const [nickname, setNickname] = useState(defaultNickname());
-  const [roomCodeInput, setRoomCodeInput] = useState('');
+  const [roomCodeInput, setRoomCodeInput] = useState(prefilledRoomCode);
 
   const handleSubmit = (e) => {
     e.preventDefault();

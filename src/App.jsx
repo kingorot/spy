@@ -16,12 +16,24 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [myPlayerId, setMyPlayerId] = useState('');
   const [players, setPlayers] = useState([]);
+  const [prefilledRoomCode, setPrefilledRoomCode] = useState('');
+
+  // Initial URL check for invite links
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomFromUrl = params.get('room');
+    if (roomFromUrl) {
+      setPrefilledRoomCode(roomFromUrl);
+      setView('JOIN');
+    }
+  }, []);
 
   // Initialize PlayroomKit state synchronization
   const initPlayroom = async (nickname, roomCode = null) => {
     try {
       if (roomCode) {
-        window.location.hash = `r=${roomCode}`;
+        const newUrl = window.location.origin + window.location.pathname + `#r=${roomCode}`;
+        window.history.replaceState(null, '', newUrl);
       }
 
       await insertCoin({
@@ -407,6 +419,7 @@ export default function App() {
             mode="JOIN"
             onJoinRoom={handleJoinRoom}
             onBack={() => setView('HOME')}
+            prefilledRoomCode={prefilledRoomCode}
           />
         )}
 
